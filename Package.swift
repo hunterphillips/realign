@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "SplitScreen",
+    name: "RestoreLayout",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "SplitScreen", targets: ["SplitScreen"]),
+        .executable(name: "RestoreLayout", targets: ["RestoreLayout"]),
     ],
     targets: [
         .executableTarget(
-            name: "SplitScreen",
-            path: "Sources/SplitScreen",
+            name: "RestoreLayout",
+            path: "Sources/RestoreLayout",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("ApplicationServices"),
@@ -19,9 +19,9 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "SplitScreenTests",
-            dependencies: ["SplitScreen"],
-            path: "Tests/SplitScreenTests"
+            name: "RestoreLayoutTests",
+            dependencies: ["RestoreLayout"],
+            path: "Tests/RestoreLayoutTests"
         ),
     ]
 )

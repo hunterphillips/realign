@@ -4,14 +4,14 @@ import Foundation
 
 private func printHelp() {
     print("""
-    SplitScreen — save and restore visible window layouts on the built-in display
+    RestoreLayout — save and restore visible window layouts on the built-in display
 
     Usage:
-      SplitScreen                 Run the menu bar app
-      SplitScreen --save          Save the current visible-window layout
-      SplitScreen --restore       Restore the saved layout
-      SplitScreen --list          List visible standard windows and frames
-      SplitScreen --help          Show this help
+      RestoreLayout                 Run the menu bar app
+      RestoreLayout --save          Save the current visible-window layout
+      RestoreLayout --restore       Restore the saved layout
+      RestoreLayout --list          List visible standard windows and frames
+      RestoreLayout --help          Show this help
 
     Global shortcuts: ⌃⌥⌘S saves, ⌃⌥⌘R restores.
     """)
@@ -37,7 +37,7 @@ if let command = arguments.first {
             exit(0)
         } catch {
             FileHandle.standardError.write(
-                Data("SplitScreen list failed: \(error.localizedDescription)\n".utf8)
+                Data("RestoreLayout list failed: \(error.localizedDescription)\n".utf8)
             )
             exit(1)
         }
@@ -51,7 +51,7 @@ if let command = arguments.first {
             exit(0)
         } catch {
             FileHandle.standardError.write(
-                Data("SplitScreen save failed: \(error.localizedDescription)\n".utf8)
+                Data("RestoreLayout save failed: \(error.localizedDescription)\n".utf8)
             )
             exit(1)
         }

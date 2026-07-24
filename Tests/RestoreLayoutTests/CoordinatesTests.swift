@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-@testable import SplitScreen
+@testable import RestoreLayout
 
 @Suite("Coordinate conversion")
 struct CoordinatesTests {

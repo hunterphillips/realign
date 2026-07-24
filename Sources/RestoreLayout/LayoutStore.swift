@@ -12,7 +12,7 @@ struct LayoutStore: Sendable {
                 in: .userDomainMask
             ).first ?? FileManager.default.homeDirectoryForCurrentUser
             self.fileURL = base
-                .appendingPathComponent("SplitScreen", isDirectory: true)
+                .appendingPathComponent("RestoreLayout", isDirectory: true)
                 .appendingPathComponent("layout.json", isDirectory: false)
         }
     }

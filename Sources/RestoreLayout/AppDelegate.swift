@@ -70,8 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let report = RestoreEngine.restore(store: store)
         let isPartial = report.skipped > 0 || report.failed > 0
         statusItem.button?.toolTip = isPartial
-            ? "SplitScreen — \(report.summary)"
-            : "SplitScreen — layout restored"
+            ? "RestoreLayout — \(report.summary)"
+            : "RestoreLayout — layout restored"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon(preserveTooltip: isPartial)
         }
@@ -89,14 +89,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 description: "Layout saved"
             )
             statusItem.button?.toolTip =
-                "SplitScreen — saved \(layout.windows.count) windows"
+                "RestoreLayout — saved \(layout.windows.count) windows"
         } catch {
             showIcon(
                 symbol: "exclamationmark.triangle",
                 description: "Could not save layout"
             )
             statusItem.button?.toolTip =
-                "SplitScreen — save failed: \(error.localizedDescription)"
+                "RestoreLayout — save failed: \(error.localizedDescription)"
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon()
@@ -168,7 +168,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(
-            title: "Quit SplitScreen",
+            title: "Quit RestoreLayout",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         ))
@@ -197,7 +197,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         statusItem.button?.toolTip =
-            "SplitScreen needs Accessibility access"
+            "RestoreLayout needs Accessibility access"
         permissionTimer?.invalidate()
         permissionTimer = Timer.scheduledTimer(
             withTimeInterval: 1,
@@ -220,11 +220,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func showBaseIcon(preserveTooltip: Bool = false) {
         showIcon(
             symbol: "rectangle.split.2x1",
-            description: "SplitScreen"
+            description: "RestoreLayout"
         )
         if !preserveTooltip {
             statusItem.button?.toolTip =
-                "SplitScreen — restore \(restoreHotKeyDisplay), " +
+                "RestoreLayout — restore \(restoreHotKeyDisplay), " +
                 "save \(saveHotKeyDisplay)"
         }
     }

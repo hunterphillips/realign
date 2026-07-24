@@ -15,8 +15,8 @@ enum AXPermission {
     }
 
     static let instructions = """
-    SplitScreen needs Accessibility access to inspect and move windows.
-    Open System Settings → Privacy & Security → Accessibility, enable SplitScreen
+    RestoreLayout needs Accessibility access to inspect and move windows.
+    Open System Settings → Privacy & Security → Accessibility, enable RestoreLayout
     (or the terminal running this CLI), then run the command again.
     """
 }

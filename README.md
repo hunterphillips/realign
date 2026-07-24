@@ -1,4 +1,4 @@
-# SplitScreen
+# RestoreLayout
 
 A macOS menu bar app that puts your windows back where you keep them. One
 shortcut (`⌃⌥⌘R`) restores a saved layout after a monitor unplug or a
@@ -11,7 +11,7 @@ maximized window scrambles everything.
 On a laptop screen my layout is always the same: terminal and notes stacked in
 a narrow column on the left, editor and browser filling the rest. macOS
 forgets it. Unplug an external monitor and every window lands somewhere
-random, then you rebuild the arrangement by hand. SplitScreen snapshots the
+random, then you rebuild the arrangement by hand. RestoreLayout snapshots the
 arrangement once and puts it back on demand.
 
 It stores exactly one layout. Saving again overwrites it.
@@ -22,8 +22,8 @@ Requires macOS 14+ and the Swift toolchain (Xcode Command Line Tools is
 enough).
 
 ```sh
-git clone https://github.com/hunterphillips/split-screen.git
-cd split-screen
+git clone https://github.com/hunterphillips/restore-layout.git
+cd restore-layout
 ./make-dev-cert.sh        # one time: create a stable local signing identity
 ./build-app.sh install    # build, copy to /Applications, launch
 ```
@@ -52,13 +52,13 @@ pull the cable.
 The same binary runs headless:
 
 ```sh
-SplitScreen --save        # snapshot the current windows
-SplitScreen --restore     # apply the saved layout
-SplitScreen --list        # print visible windows and frames
+RestoreLayout --save        # snapshot the current windows
+RestoreLayout --restore     # apply the saved layout
+RestoreLayout --list        # print visible windows and frames
 ```
 
 The layout is plain JSON at
-`~/Library/Application Support/SplitScreen/layout.json`.
+`~/Library/Application Support/RestoreLayout/layout.json`.
 
 ## How it works
 

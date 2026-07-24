@@ -16,7 +16,7 @@ enum LoginItem {
             }
         } catch {
             FileHandle.standardError.write(
-                Data("SplitScreen login-item error: \(error)\n".utf8)
+                Data("RestoreLayout login-item error: \(error)\n".utf8)
             )
         }
         return isEnabled

@@ -1,4 +1,4 @@
-# SplitScreen
+# RestoreLayout
 
 macOS menu bar utility and CLI for snapshotting visible window frames and
 restoring them relative to the built-in display.
@@ -33,7 +33,7 @@ restoring them relative to the built-in display.
 swift build
 swift test
 ./build-app.sh
-codesign -dv --verbose=4 SplitScreen.app
+codesign -dv --verbose=4 RestoreLayout.app
 ```
 
 Use `./build-app.sh install` for the installed daily-driver copy. Run
@@ -57,6 +57,6 @@ identity and Accessibility approval.
 - V1 is hotkey/manual only: no display notifications, debounce, polling,
   named layouts, app launching, Space manipulation, or settings UI.
 - Do not enable App Sandbox; public AX window control is incompatible with it.
-- Keep the stable `split-screen-dev` signing path. Ad-hoc signatures can cause
+- Keep the stable `restore-layout-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.
 

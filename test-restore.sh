@@ -4,11 +4,11 @@
 set -eu
 cd "$(dirname "$0")"
 
-if [[ ! -x ".build/release/SplitScreen" ]]; then
+if [[ ! -x ".build/release/RestoreLayout" ]]; then
   swift build -c release
 fi
 
-BINARY=".build/release/SplitScreen"
+BINARY=".build/release/RestoreLayout"
 if ! "$BINARY" --list >/dev/null; then
   echo "Grant Accessibility access to this terminal, then rerun." >&2
   exit 2

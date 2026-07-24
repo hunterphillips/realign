@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
-@testable import SplitScreen
+@testable import RestoreLayout
 
 @Suite("Window matching and persistence")
 struct MatchingTests {
@@ -95,7 +95,7 @@ struct MatchingTests {
             ]
         )
         let testDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SplitScreenTests-\(UUID().uuidString)")
+            .appendingPathComponent("RestoreLayoutTests-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: testDirectory) }
         let store = LayoutStore(
             fileURL: testDirectory.appendingPathComponent("layout.json")
