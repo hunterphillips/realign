@@ -12,12 +12,6 @@ enum CaptureError: LocalizedError {
     }
 }
 
-/// Where a save landed in the library.
-enum SaveSlot: Equatable, Sendable {
-    case laptop
-    case multiDisplay(externalCount: Int)
-}
-
 enum CaptureEngine {
     /// Anchors each window to the display it overlaps most and stores its
     /// frame relative to that display.
@@ -58,8 +52,7 @@ enum CaptureEngine {
         )
     }
 
-    /// Saves to the laptop slot when only the built-in is connected, else to
-    /// the multi-display slot keyed by the live fingerprint. An unreadable
+    /// Routes the capture via `LayoutLibrary.store(_:for:)`. An unreadable
     /// library aborts the save rather than being overwritten.
     @MainActor
     @discardableResult
@@ -69,14 +62,7 @@ enum CaptureEngine {
         let configuration = DisplayConfiguration.current()
         let layout = try capture(configuration: configuration)
         var library = try store.load(builtIn: configuration.builtIn?.info) ?? LayoutLibrary()
-        let slot: SaveSlot
-        if configuration.isLaptopOnly {
-            library.laptop = layout
-            slot = .laptop
-        } else {
-            library.multiDisplay[configuration.fingerprint] = layout
-            slot = .multiDisplay(externalCount: configuration.externalCount)
-        }
+        let slot = library.store(layout, for: configuration)
         try store.save(library)
         return (layout, slot)
     }

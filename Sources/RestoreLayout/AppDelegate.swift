@@ -81,15 +81,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             description: "Restoring layout"
         )
         let report = RestoreEngine.restore(target: target, store: store)
-        let isPartial = report.target.isEmpty || report.skipped > 0 || report.failed > 0
+        let isPartial = !report.applied || report.skipped > 0 || report.failed > 0
         let tooltip: String
-        if report.target.isEmpty {
+        if !report.applied {
             // Nothing was applied: name the reason rather than zero counts.
             tooltip = report.reasons.first ?? report.summary
         } else if isPartial {
             tooltip = report.summary
         } else {
-            tooltip = "\(report.target) restored"
+            tooltip = report.target.map { "\($0) restored" } ?? report.summary
         }
         statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
@@ -109,7 +109,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 description: "Layout saved"
             )
             statusItem.button?.toolTip =
-                "RestoreLayout — saved \(layout.windows.count) windows " +
+                "RestoreLayout — saved \(layout.windows.count) " +
+                "window\(layout.windows.count == 1 ? "" : "s") " +
                 "(\(slot.feedbackDescription))"
         } catch {
             showFailure(

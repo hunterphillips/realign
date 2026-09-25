@@ -165,6 +165,25 @@ struct DisplaysTests {
         #expect(DisplayConfiguration.matchingKey(for: docked, in: library) == savedKey)
     }
 
+    @Test func matchingKeyFallbackPrefersNewestLayout() {
+        func renamed(_ prefix: String) -> [DisplayInfo] {
+            var dell = Self.dell.info
+            dell.uuid = "\(prefix)-1111-1111-1111-111111111111"
+            return [Self.builtIn.info, Self.portrait.info, dell]
+        }
+        let olderInfos = renamed("00000000")
+        let newerInfos = renamed("FFFFFFFF")
+        let olderKey = DisplayConfiguration.fingerprint(of: olderInfos)
+        let newerKey = DisplayConfiguration.fingerprint(of: newerInfos)
+        // The older layout sorts first by key, so key order alone would pick it.
+        #expect(olderKey < newerKey)
+        let library = [
+            olderKey: Layout(savedAt: Date(timeIntervalSince1970: 1), displays: olderInfos, windows: []),
+            newerKey: Layout(savedAt: Date(timeIntervalSince1970: 2), displays: newerInfos, windows: []),
+        ]
+        #expect(DisplayConfiguration.matchingKey(for: docked, in: library) == newerKey)
+    }
+
     @Test func matchingKeyReturnsNilWhenNothingMatches() {
         let library = [
             "laptop+dell": layout(displays: [Self.builtIn.info, Self.dell.info]),

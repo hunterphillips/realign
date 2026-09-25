@@ -125,8 +125,98 @@ struct RestoreSelectionTests {
     @Test func summaryNamesTargetWhenSet() {
         var report = RestoreReport(restored: 5, skipped: 1, failed: 0)
         #expect(report.summary == "Restored 5, skipped 1, failed 0")
-        report.target = "multi-display layout"
+        #expect(!report.applied)
+        report.target = .multiDisplay
+        #expect(report.applied)
         #expect(report.summary == "Restored 5, skipped 1, failed 0 (multi-display layout)")
+        report.target = .laptop
+        #expect(report.summary == "Restored 5, skipped 1, failed 0 (laptop layout)")
+    }
+
+    @Test func builtInFallbackWarnsOncePerDisplay() {
+        // Docked layout restored with only the built-in: the two externals
+        // fall back to it (different kind), the built-in matches exactly.
+        let saved = docked.displays.map(\.info)
+        let warnings = RestoreEngine.sizeWarnings(
+            saved: saved,
+            resolved: laptopOnly.resolveAll(saved)
+        )
+        #expect(warnings.count == 2)
+    }
+
+    @Test func builtInFallbackWarnsEvenWhenSizesMatch() {
+        var sameSizeExternal = DisplaysTests.dell.info
+        sameSizeExternal.size = DisplaysTests.builtIn.info.size
+        let saved = [sameSizeExternal]
+        let warnings = RestoreEngine.sizeWarnings(
+            saved: saved,
+            resolved: laptopOnly.resolveAll(saved)
+        )
+        #expect(warnings.count == 1)
+    }
+
+    // MARK: - Save routing
+
+    @Test func laptopOnlySaveRoutesToLaptop() {
+        var library = LayoutLibrary(multiDisplay: [docked.fingerprint: dockedLayout])
+        let slot = library.store(laptopLayout, for: laptopOnly)
+        #expect(slot == .laptop)
+        #expect(library.laptop == laptopLayout)
+        #expect(library.multiDisplay == [docked.fingerprint: dockedLayout])
+    }
+
+    @Test func dockedSaveRoutesToFingerprint() {
+        var library = LayoutLibrary(laptop: laptopLayout)
+        let slot = library.store(dockedLayout, for: docked)
+        #expect(slot == .multiDisplay(externalCount: 2))
+        #expect(library.laptop == laptopLayout)
+        #expect(library.multiDisplay == [docked.fingerprint: dockedLayout])
+    }
+
+    @Test func dockedSaveReplacesStaleKeyWithSameSignature() {
+        var renamedDell = DisplaysTests.dell.info
+        renamedDell.uuid = "11111111-1111-1111-1111-111111111111"
+        let stale = Self.layout(
+            [DisplaysTests.builtIn.info, DisplaysTests.portrait.info, renamedDell],
+            savedAt: 1
+        )
+        let staleKey = DisplayConfiguration.fingerprint(of: stale.displays)
+        let other = Self.layout([DisplaysTests.builtIn.info, DisplaysTests.dell.info], savedAt: 1)
+        let otherKey = DisplayConfiguration.fingerprint(of: other.displays)
+        var library = LayoutLibrary(multiDisplay: [staleKey: stale, otherKey: other])
+
+        _ = library.store(dockedLayout, for: docked)
+
+        #expect(library.multiDisplay == [docked.fingerprint: dockedLayout, otherKey: other])
+    }
+
+    // MARK: - Migration
+
+    @Test func migratedV1LayoutResolvesToBuiltInWhenDocked() {
+        let legacy = LegacyLayoutV1(
+            savedAt: Date(timeIntervalSince1970: 0),
+            builtInSize: DisplaysTests.builtIn.info.size,
+            windows: [
+                .init(bundleID: "com.google.Chrome", appName: "Google Chrome",
+                      title: "", indexInApp: 0,
+                      frame: CGRect(x: 571, y: 33, width: 1157, height: 1041)),
+                .init(bundleID: "com.mitchellh.ghostty", appName: "Ghostty",
+                      title: "", indexInApp: 0,
+                      frame: CGRect(x: 0, y: 34, width: 570, height: 1042)),
+            ]
+        )
+        let migrated = Layout.migrated(fromV1: legacy, builtIn: DisplaysTests.builtIn.info)
+        let library = LayoutLibrary(laptop: migrated)
+
+        guard case .laptop(let selected) = select(.connectedDisplays, library, docked) else {
+            Issue.record("expected the migrated laptop layout")
+            return
+        }
+        let resolved = docked.resolveAll(selected.displays)
+        #expect(!selected.windows.isEmpty)
+        for record in selected.windows {
+            #expect(resolved[record.displayUUID] == DisplaysTests.builtIn)
+        }
     }
 
     // MARK: - Helpers

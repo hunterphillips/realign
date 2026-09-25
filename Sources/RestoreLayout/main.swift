@@ -58,7 +58,8 @@ if let command = arguments.first {
             case .multiDisplay(let count):
                 "the multi-display layout (\(count) external display\(count == 1 ? "" : "s"))"
             }
-            print("Saved \(layout.windows.count) windows to \(destination)")
+            let count = layout.windows.count
+            print("Saved \(count) window\(count == 1 ? "" : "s") to \(destination)")
             print(store.fileURL.path)
             exit(0)
         } catch {
@@ -86,7 +87,7 @@ if let command = arguments.first {
         }
         let report = RestoreEngine.restore(target: target)
         print(report)
-        exit(report.failed == 0 ? 0 : 1)
+        exit(report.applied && report.failed == 0 ? 0 : 1)
 
     default:
         FileHandle.standardError.write(

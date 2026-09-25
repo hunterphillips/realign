@@ -48,6 +48,31 @@ struct LayoutLibrary: Codable, Equatable, Sendable {
     var multiDisplay: [String: Layout] = [:]
 }
 
+/// Where a save landed in the library.
+enum SaveSlot: Equatable, Sendable {
+    case laptop
+    case multiDisplay(externalCount: Int)
+}
+
+extension LayoutLibrary {
+    /// Stores `layout` in the laptop slot when only the built-in is connected,
+    /// else under the live fingerprint. A multi-display save first removes
+    /// every entry for the same hardware (same vendor/model/size multiset)
+    /// under other UUIDs, so stale keys cannot shadow the new layout.
+    mutating func store(_ layout: Layout, for configuration: DisplayConfiguration) -> SaveSlot {
+        if configuration.isLaptopOnly {
+            laptop = layout
+            return .laptop
+        }
+        let live = configuration.displays.map(\.info)
+        multiDisplay = multiDisplay.filter {
+            !DisplayConfiguration.signaturesMatch($0.value.displays, live)
+        }
+        multiDisplay[configuration.fingerprint] = layout
+        return .multiDisplay(externalCount: configuration.externalCount)
+    }
+}
+
 extension LayoutLibrary {
     /// Missing keys take their defaults; an unknown `shortcutTarget` falls
     /// back to `.connectedDisplays` instead of failing the whole library.

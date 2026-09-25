@@ -23,13 +23,27 @@ struct RestoreReport: Equatable, Sendable, CustomStringConvertible {
     var skipped = 0
     var failed = 0
     var reasons: [String] = []
-    /// Which layout was applied ("laptop layout" / "multi-display layout");
-    /// empty when none was.
-    var target: String = ""
+    /// Which layout was selected; nil when none was.
+    var target: Target? = nil
+
+    enum Target: Equatable, Sendable, CustomStringConvertible {
+        case laptop
+        case multiDisplay
+
+        var description: String {
+            switch self {
+            case .laptop: "laptop layout"
+            case .multiDisplay: "multi-display layout"
+            }
+        }
+    }
+
+    /// A layout was selected and its windows were attempted.
+    var applied: Bool { target != nil }
 
     var summary: String {
         let counts = "Restored \(restored), skipped \(skipped), failed \(failed)"
-        return target.isEmpty ? counts : "\(counts) (\(target))"
+        return target.map { "\(counts) (\($0))" } ?? counts
     }
 
     var description: String {
@@ -92,17 +106,22 @@ enum RestoreEngine {
         return RestoreTarget(library.shortcutTarget)
     }
 
-    /// One warning per saved display whose resolved live display has a
-    /// different size. Frames are applied as-is either way.
+    /// At most one warning per saved display. A display that fell back to a
+    /// different kind of display (the built-in) always warns; otherwise a
+    /// warning appears only when the resolved size differs. Frames are
+    /// applied as-is either way.
     static func sizeWarnings(
         saved: [DisplayInfo],
         resolved: [String: DisplayGeometry]
     ) -> [String] {
         saved.compactMap { info in
-            guard let live = resolved[info.uuid],
-                  !sizesMatch(info.size, live.info.size) else {
-                return nil
+            guard let live = resolved[info.uuid] else { return nil }
+            let sameKind = live.info.vendor == info.vendor && live.info.model == info.model
+            if live.info.uuid != info.uuid && !sameKind {
+                return "\(info.name) not connected; placing its windows on " +
+                    "\(live.info.name) without scaling."
             }
+            guard !sizesMatch(info.size, live.info.size) else { return nil }
             let onto = live.info.uuid == info.uuid ? "" : " (using \(live.info.name))"
             return "\(info.name) size changed from \(format(info.size)) " +
                 "to \(format(live.info.size))\(onto); applying saved points without scaling."
@@ -169,10 +188,10 @@ enum RestoreEngine {
         switch select(target: target, library: library, configuration: configuration) {
         case .laptop(let selected):
             layout = selected
-            report.target = "laptop layout"
+            report.target = .laptop
         case .multiDisplay(_, let selected):
             layout = selected
-            report.target = "multi-display layout"
+            report.target = .multiDisplay
         case .noLaptopLayout:
             report.reasons.append("No laptop layout saved.")
             return report
@@ -185,6 +204,11 @@ enum RestoreEngine {
         }
 
         let anchors = configuration.resolveAll(layout.displays)
+        if anchors.isEmpty && !layout.displays.isEmpty {
+            report.skipped = layout.windows.count
+            report.reasons.append("No saved display is connected; nothing to restore.")
+            return report
+        }
         report.reasons.append(contentsOf: sizeWarnings(saved: layout.displays, resolved: anchors))
 
         let groups = WindowEnumerator.visibleStandardWindows()

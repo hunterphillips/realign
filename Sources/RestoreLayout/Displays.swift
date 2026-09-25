@@ -85,8 +85,9 @@ struct DisplayConfiguration: Equatable, Sendable {
         return resolved
     }
 
-    /// Exact fingerprint key, else the first key (in sorted order) whose
-    /// layout's display multiset matches the live one on (vendor, model, size).
+    /// Exact fingerprint key, else the key of the newest layout (greatest
+    /// `savedAt`; ties → sorted key order) whose display multiset matches the
+    /// live one on (vendor, model, size).
     static func matchingKey(
         for config: DisplayConfiguration,
         in library: [String: Layout]
@@ -95,11 +96,22 @@ struct DisplayConfiguration: Equatable, Sendable {
         if library[fingerprint] != nil {
             return fingerprint
         }
-        let live = signatureCounts(config.displays.map(\.info))
+        let live = config.displays.map(\.info)
         return library
-            .sorted { $0.key < $1.key }
-            .first { signatureCounts($0.value.displays) == live }?
+            .filter { signaturesMatch($0.value.displays, live) }
+            .sorted {
+                $0.value.savedAt != $1.value.savedAt
+                    ? $0.value.savedAt > $1.value.savedAt
+                    : $0.key < $1.key
+            }
+            .first?
             .key
+    }
+
+    /// True when both display lists have the same (vendor, model, size)
+    /// multiset, i.e. they describe the same hardware regardless of UUIDs.
+    static func signaturesMatch(_ lhs: [DisplayInfo], _ rhs: [DisplayInfo]) -> Bool {
+        signatureCounts(lhs) == signatureCounts(rhs)
     }
 
     @MainActor
