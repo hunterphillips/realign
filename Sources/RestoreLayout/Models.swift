@@ -38,7 +38,10 @@ enum ShortcutTarget: String, Codable, Sendable {
 }
 
 struct LayoutLibrary: Codable, Equatable, Sendable {
-    var version: Int = 2
+    /// The newest library format this binary reads and writes.
+    static let currentVersion = 2
+
+    var version: Int = currentVersion
     var shortcutTarget: ShortcutTarget = .connectedDisplays
     var laptop: Layout?
     /// Keyed by `DisplayConfiguration.fingerprint`.
@@ -50,7 +53,8 @@ extension LayoutLibrary {
     /// back to `.connectedDisplays` instead of failing the whole library.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 2
+        version = try container.decodeIfPresent(Int.self, forKey: .version)
+            ?? Self.currentVersion
         shortcutTarget = try container
             .decodeIfPresent(String.self, forKey: .shortcutTarget)
             .flatMap(ShortcutTarget.init(rawValue:)) ?? .connectedDisplays

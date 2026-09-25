@@ -1,5 +1,17 @@
 import Foundation
 
+enum LayoutStoreError: LocalizedError {
+    case newerVersion(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .newerVersion(let version):
+            "layouts.json is version \(version), newer than this RestoreLayout " +
+                "understands (\(LayoutLibrary.currentVersion)). Update RestoreLayout."
+        }
+    }
+}
+
 struct LayoutStore: Sendable {
     /// v2 library file (`layouts.json`).
     let fileURL: URL
@@ -42,16 +54,22 @@ struct LayoutStore: Sendable {
     /// built-in display, or nil in clamshell mode, in which case migrated
     /// records anchor to a placeholder that still resolves to the built-in
     /// through the `isBuiltIn` fallback. Returns nil when neither file exists.
+    /// Throws on a library newer than this binary so it is never rewritten
+    /// in the older format.
     func load(builtIn: DisplayInfo?) throws -> LayoutLibrary? {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let fileManager = FileManager.default
 
         if fileManager.fileExists(atPath: fileURL.path) {
-            return try decoder.decode(
+            let library = try decoder.decode(
                 LayoutLibrary.self,
                 from: Data(contentsOf: fileURL)
             )
+            guard library.version <= LayoutLibrary.currentVersion else {
+                throw LayoutStoreError.newerVersion(library.version)
+            }
+            return library
         }
         guard fileManager.fileExists(atPath: legacyFileURL.path) else {
             return nil

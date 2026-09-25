@@ -67,7 +67,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             symbol: "arrow.triangle.2.circlepath",
             description: "Restoring layout"
         )
-        let report = RestoreEngine.restore(store: store)
+        let target = (try? RestoreEngine.shortcutTarget(store: store)) ?? .connectedDisplays
+        let report = RestoreEngine.restore(target: target, store: store)
         let isPartial = report.skipped > 0 || report.failed > 0
         statusItem.button?.toolTip = isPartial
             ? "RestoreLayout — \(report.summary)"
@@ -83,7 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         do {
-            let layout = try CaptureEngine.captureAndSave(store: store)
+            let (layout, _) = try CaptureEngine.captureAndSave(store: store)
             showIcon(
                 symbol: "checkmark.rectangle",
                 description: "Layout saved"

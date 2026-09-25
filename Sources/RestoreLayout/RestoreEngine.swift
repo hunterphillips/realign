@@ -23,9 +23,13 @@ struct RestoreReport: Equatable, Sendable, CustomStringConvertible {
     var skipped = 0
     var failed = 0
     var reasons: [String] = []
+    /// Which layout was applied ("laptop layout" / "multi-display layout");
+    /// empty when none was.
+    var target: String = ""
 
     var summary: String {
-        "Restored \(restored), skipped \(skipped), failed \(failed)"
+        let counts = "Restored \(restored), skipped \(skipped), failed \(failed)"
+        return target.isEmpty ? counts : "\(counts) (\(target))"
     }
 
     var description: String {
@@ -33,7 +37,78 @@ struct RestoreReport: Equatable, Sendable, CustomStringConvertible {
     }
 }
 
+enum RestoreTarget: Equatable, Sendable {
+    case laptop
+    case multiDisplay
+    /// Multi-display layout for the connected displays, else laptop.
+    case connectedDisplays
+}
+
+extension RestoreTarget {
+    init(_ shortcut: ShortcutTarget) {
+        switch shortcut {
+        case .connectedDisplays: self = .connectedDisplays
+        case .laptop: self = .laptop
+        case .multiDisplay: self = .multiDisplay
+        }
+    }
+}
+
+/// Outcome of choosing a layout for a restore target. Pure; no AX or NSScreen.
+enum RestoreSelection: Equatable, Sendable {
+    case laptop(Layout)
+    case multiDisplay(key: String, layout: Layout)
+    case noLaptopLayout
+    case noExternalDisplays
+    case noMatchingLayout
+}
+
 enum RestoreEngine {
+    static func select(
+        target: RestoreTarget,
+        library: LayoutLibrary,
+        configuration: DisplayConfiguration
+    ) -> RestoreSelection {
+        let laptop: RestoreSelection = library.laptop.map { .laptop($0) } ?? .noLaptopLayout
+        guard target != .laptop else { return laptop }
+
+        guard !configuration.isLaptopOnly else {
+            return target == .multiDisplay ? .noExternalDisplays : laptop
+        }
+        if let key = DisplayConfiguration.matchingKey(
+            for: configuration,
+            in: library.multiDisplay
+        ), let layout = library.multiDisplay[key] {
+            return .multiDisplay(key: key, layout: layout)
+        }
+        return target == .multiDisplay ? .noMatchingLayout : laptop
+    }
+
+    /// The target the global shortcut and bare `--restore` use.
+    @MainActor
+    static func shortcutTarget(store: LayoutStore = LayoutStore()) throws -> RestoreTarget {
+        let builtIn = DisplayConfiguration.current().builtIn?.info
+        let library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
+        return RestoreTarget(library.shortcutTarget)
+    }
+
+    /// One warning per saved display whose resolved live display has a
+    /// different size. Frames are applied as-is either way.
+    static func sizeWarnings(
+        saved: [DisplayInfo],
+        resolved: [String: DisplayGeometry]
+    ) -> [String] {
+        saved.compactMap { info in
+            guard let live = resolved[info.uuid],
+                  !sizesMatch(info.size, live.info.size) else {
+                return nil
+            }
+            let onto = live.info.uuid == info.uuid ? "" : " (using \(live.info.name))"
+            return "\(info.name) size changed from \(format(info.size)) " +
+                "to \(format(live.info.size))\(onto); applying saved points without scaling."
+        }
+    }
+
     /// Pairs nth-saved to nth-live within each bundle ID. Titles are
     /// intentionally absent from this algorithm because they are unstable.
     static func match(
@@ -75,34 +150,42 @@ enum RestoreEngine {
     }
 
     @MainActor
-    static func restore(store: LayoutStore = LayoutStore()) -> RestoreReport {
+    static func restore(
+        target: RestoreTarget,
+        store: LayoutStore = LayoutStore()
+    ) -> RestoreReport {
         var report = RestoreReport()
-        let builtIn = DisplayConfiguration.current().builtIn
-        let layout: Layout
+        let configuration = DisplayConfiguration.current()
+        let library: LayoutLibrary
         do {
-            guard let loaded = try store.load(builtIn: builtIn?.info)?.laptop else {
-                report.reasons.append("No saved layout. Save a layout first.")
-                return report
-            }
-            layout = loaded
+            library = try store.load(builtIn: configuration.builtIn?.info) ?? LayoutLibrary()
         } catch {
             report.failed += 1
-            report.reasons.append("Could not load layout: \(error.localizedDescription)")
+            report.reasons.append("Could not load layouts: \(error.localizedDescription)")
             return report
         }
 
-        guard let builtIn else {
-            report.failed += layout.windows.count
-            report.reasons.append("No built-in display was found.")
+        let layout: Layout
+        switch select(target: target, library: library, configuration: configuration) {
+        case .laptop(let selected):
+            layout = selected
+            report.target = "laptop layout"
+        case .multiDisplay(_, let selected):
+            layout = selected
+            report.target = "multi-display layout"
+        case .noLaptopLayout:
+            report.reasons.append("No laptop layout saved.")
+            return report
+        case .noExternalDisplays:
+            report.reasons.append("No external displays connected.")
+            return report
+        case .noMatchingLayout:
+            report.reasons.append("No layout saved for the connected displays.")
             return report
         }
-        if let savedBuiltIn = layout.displays.first(where: \.isBuiltIn),
-           !sizesMatch(savedBuiltIn.size, builtIn.info.size) {
-            report.reasons.append(
-                "Built-in display size changed from \(format(savedBuiltIn.size)) " +
-                "to \(format(builtIn.info.size)); applying saved points without scaling."
-            )
-        }
+
+        let anchors = configuration.resolveAll(layout.displays)
+        report.reasons.append(contentsOf: sizeWarnings(saved: layout.displays, resolved: anchors))
 
         let groups = WindowEnumerator.visibleStandardWindows()
         var liveDescriptors: [LiveWindowDescriptor] = []
@@ -121,6 +204,8 @@ enum RestoreEngine {
             }
         }
 
+        // Match before dropping unresolved records so nth-saved still pairs
+        // with nth-live when one of an app's displays is missing.
         let matching = match(saved: layout.windows, live: liveDescriptors)
         report.skipped += matching.unmatchedSaved.count
         for record in matching.unmatchedSaved {
@@ -129,28 +214,46 @@ enum RestoreEngine {
             )
         }
 
-        let bundleIDs = orderedUnique(matching.matches.map { $0.saved.bundleID })
+        var anchored: [AnchoredMatch] = []
+        for match in matching.matches {
+            if let anchor = anchors[match.saved.displayUUID] {
+                anchored.append(AnchoredMatch(match: match, anchor: anchor))
+            } else {
+                let name = layout.displays
+                    .first { $0.uuid == match.saved.displayUUID }?
+                    .name ?? match.saved.displayUUID
+                report.skipped += 1
+                report.reasons.append(
+                    "Skipped \(match.saved.appName) window \(match.saved.indexInApp): " +
+                    "display \(name) not connected."
+                )
+            }
+        }
+
+        let bundleIDs = orderedUnique(anchored.map { $0.match.saved.bundleID })
         for bundleID in bundleIDs {
-            let appMatches = matching.matches.filter { $0.saved.bundleID == bundleID }
             apply(
-                appMatches: appMatches,
+                appMatches: anchored.filter { $0.match.saved.bundleID == bundleID },
                 liveWindows: liveWindows,
-                builtIn: builtIn,
                 report: &report
             )
         }
         return report
     }
 
+    private struct AnchoredMatch {
+        var match: WindowMatch
+        var anchor: DisplayGeometry
+    }
+
     @MainActor
     private static func apply(
-        appMatches: [WindowMatch],
+        appMatches: [AnchoredMatch],
         liveWindows: [LiveWindowDescriptor: AXWindow],
-        builtIn: DisplayGeometry,
         report: inout RestoreReport
     ) {
         guard let firstMatch = appMatches.first,
-              let firstWindow = liveWindows[firstMatch.live] else {
+              let firstWindow = liveWindows[firstMatch.match.live] else {
             return
         }
         let enhancedWasEnabled = firstWindow.enhancedUserInterface == true
@@ -163,7 +266,8 @@ enum RestoreEngine {
             }
         }
 
-        for match in appMatches {
+        for anchoredMatch in appMatches {
+            let match = anchoredMatch.match
             guard let window = liveWindows[match.live] else {
                 report.skipped += 1
                 report.reasons.append(
@@ -180,7 +284,7 @@ enum RestoreEngine {
             }
             let target = Coordinates.axGlobal(
                 fromDisplayRelative: match.saved.frame,
-                displayAXOrigin: builtIn.axFrame.origin
+                displayAXOrigin: anchoredMatch.anchor.axFrame.origin
             )
             if applyAndVerify(window: window, target: target) {
                 report.restored += 1

@@ -173,6 +173,16 @@ struct MatchingTests {
         }
     }
 
+    @Test func loadThrowsOnNewerLibraryVersion() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try store.save(LayoutLibrary(version: LayoutLibrary.currentVersion + 1))
+
+        #expect(throws: LayoutStoreError.self) {
+            try store.load(builtIn: Self.builtIn)
+        }
+    }
+
     @Test func loadPrefersV2LibraryOverV1File() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }
