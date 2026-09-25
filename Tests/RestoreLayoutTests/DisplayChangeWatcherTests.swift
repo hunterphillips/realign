@@ -17,6 +17,8 @@ struct DisplayChangeWatcherTests {
         // Changed while disabled: record only, so enabling later does not replay it.
         (false, "A+B", "A", Decision.record),
         (false, "A", "A+B", Decision.record),
+        // First real set after starting with none: baseline only.
+        (true, "", "A", Decision.record),
         // Changed while enabled: restore.
         (true, "A+B", "A", Decision.restore),
         (true, "A", "A+B", Decision.restore),

@@ -30,7 +30,10 @@ final class DisplayChangeWatcher: NSObject {
     ///   enabling later does not replay an old change.
     nonisolated static func decide(enabled: Bool, previous: String, current: String) -> Decision {
         guard !current.isEmpty else { return .ignore }
-        guard enabled && previous != current else { return .record }
+        // No previous set means the watcher started while no displays were
+        // reported (e.g. launch at login during display sleep). The first
+        // real set is a baseline, not a change.
+        guard enabled && !previous.isEmpty && previous != current else { return .record }
         return .restore
     }
 
