@@ -116,7 +116,8 @@ enum RestoreEngine {
     ) -> [String] {
         saved.compactMap { info in
             guard let live = resolved[info.uuid] else { return nil }
-            let sameKind = live.info.vendor == info.vendor && live.info.model == info.model
+            let sameKind = (live.info.vendor == info.vendor && live.info.model == info.model)
+                || (info.isBuiltIn && live.info.isBuiltIn)
             if live.info.uuid != info.uuid && !sameKind {
                 return "\(info.name) not connected; placing its windows on " +
                     "\(live.info.name) without scaling."
@@ -205,6 +206,7 @@ enum RestoreEngine {
 
         let anchors = configuration.resolveAll(layout.displays)
         if anchors.isEmpty && !layout.displays.isEmpty {
+            report.target = nil
             report.skipped = layout.windows.count
             report.reasons.append("No saved display is connected; nothing to restore.")
             return report

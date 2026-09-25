@@ -56,17 +56,14 @@ enum SaveSlot: Equatable, Sendable {
 
 extension LayoutLibrary {
     /// Stores `layout` in the laptop slot when only the built-in is connected,
-    /// else under the live fingerprint. A multi-display save first removes
-    /// every entry for the same hardware (same vendor/model/size multiset)
-    /// under other UUIDs, so stale keys cannot shadow the new layout.
+    /// else under the live fingerprint. Other entries with the same hardware
+    /// signature (e.g. a different dock with the same monitor model) are left
+    /// alone: `DisplayConfiguration.matchingKey`'s newest-`savedAt` fallback
+    /// already keeps a stale entry from shadowing this one.
     mutating func store(_ layout: Layout, for configuration: DisplayConfiguration) -> SaveSlot {
         if configuration.isLaptopOnly {
             laptop = layout
             return .laptop
-        }
-        let live = configuration.displays.map(\.info)
-        multiDisplay = multiDisplay.filter {
-            !DisplayConfiguration.signaturesMatch($0.value.displays, live)
         }
         multiDisplay[configuration.fingerprint] = layout
         return .multiDisplay(externalCount: configuration.externalCount)

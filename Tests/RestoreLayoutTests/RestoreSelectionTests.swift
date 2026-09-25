@@ -155,6 +155,26 @@ struct RestoreSelectionTests {
         #expect(warnings.count == 1)
     }
 
+    @Test func migratedBuiltInPlaceholderIsSameKindAsRealBuiltIn() {
+        // The v1-migration placeholder (vendor 0, model 0, uuid "builtin")
+        // restoring onto the real built-in should read as the same kind of
+        // display, not a "not connected" fallback.
+        let placeholder = DisplayInfo(
+            uuid: "builtin",
+            name: "Built-in Display",
+            vendor: 0,
+            model: 0,
+            isBuiltIn: true,
+            size: DisplaysTests.builtIn.info.size
+        )
+        let saved = [placeholder]
+        let warnings = RestoreEngine.sizeWarnings(
+            saved: saved,
+            resolved: laptopOnly.resolveAll(saved)
+        )
+        #expect(warnings.isEmpty)
+    }
+
     // MARK: - Save routing
 
     @Test func laptopOnlySaveRoutesToLaptop() {
@@ -173,7 +193,9 @@ struct RestoreSelectionTests {
         #expect(library.multiDisplay == [docked.fingerprint: dockedLayout])
     }
 
-    @Test func dockedSaveReplacesStaleKeyWithSameSignature() {
+    @Test func dockedSaveKeepsOtherKeysWithSameSignature() {
+        // Two docks with the same monitor model (e.g. home and office) but
+        // different UUIDs must keep separate layouts under their own keys.
         var renamedDell = DisplaysTests.dell.info
         renamedDell.uuid = "11111111-1111-1111-1111-111111111111"
         let stale = Self.layout(
@@ -187,7 +209,11 @@ struct RestoreSelectionTests {
 
         _ = library.store(dockedLayout, for: docked)
 
-        #expect(library.multiDisplay == [docked.fingerprint: dockedLayout, otherKey: other])
+        #expect(library.multiDisplay == [
+            docked.fingerprint: dockedLayout,
+            staleKey: stale,
+            otherKey: other,
+        ])
     }
 
     // MARK: - Migration
