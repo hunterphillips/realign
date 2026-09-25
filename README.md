@@ -1,112 +1,115 @@
 # RestoreLayout
 
-A macOS menu bar app that puts your windows back where you keep them. One
-shortcut (`⌃⌥⌘R`) restores a saved layout after a monitor unplug or a
-maximized window scrambles everything.
+RestoreLayout puts your Mac windows back where you had them.
 
 ![Before and after](assets/before-after.png)
 
-## Why
+Arrange your windows once and save. When something scrambles them, press one
+shortcut and they snap back. It remembers two arrangements: one for the
+laptop on its own, and one for each set of monitors you plug into. It can
+also restore on its own when you plug in or unplug.
 
-On a laptop screen my layout is always the same: terminal and notes stacked in
-a narrow column on the left, editor and browser filling the rest. macOS
-forgets it. Unplug an external monitor and every window lands somewhere
-random, then you rebuild the arrangement by hand. RestoreLayout snapshots the
-arrangement once and puts it back on demand.
-
-It keeps a laptop layout plus one multi-display layout for each set of
-displays you dock to. Saving again overwrites the slot for the displays
-connected right now.
+It lives in the menu bar, is free, and is open source (MIT).
 
 ## Install
 
-Requires macOS 14+ and the Swift toolchain (Xcode Command Line Tools is
-enough).
+Requires macOS 14 or later and the Xcode Command Line Tools. Right now you
+build it from source, which takes about a minute:
 
 ```sh
 git clone https://github.com/hunterphillips/restore-layout.git
 cd restore-layout
-./make-dev-cert.sh        # one time: create a stable local signing identity
-./build-app.sh install    # build, copy to /Applications, launch
+./make-dev-cert.sh        # once: creates a local signing certificate
+./build-app.sh install    # builds the app, copies it to /Applications, opens it
 ```
 
-`make-dev-cert.sh` creates a self-signed certificate so rebuilds keep their
-Accessibility approval. Without it the build falls back to ad-hoc signing, and
-on macOS Tahoe each ad-hoc rebuild needs Accessibility granted again.
+The first script makes a certificate so that rebuilding the app doesn't make
+macOS ask for permission again. Skip it and everything still works, but on
+macOS Tahoe you'll be asked after every rebuild.
 
-On first launch, macOS asks for **Accessibility** access (System Settings →
-Privacy & Security → Accessibility). The menu unlocks once it's granted. For
-CLI use, the terminal running the binary needs its own Accessibility grant.
+On first launch, macOS asks for Accessibility access. Turn it on in System
+Settings under Privacy & Security, then Accessibility. The app needs this to
+move other apps' windows.
 
-## Use
+## How to use
 
-- Arrange your windows, then press `⌃⌥⌘S` or choose **Save Current Layout**.
-  With only the laptop screen connected this saves the laptop layout;
-  otherwise it saves the multi-display layout for the connected displays.
-- Choose **Restore Laptop Layout** or **Restore Multi-Display Layout** to put
-  everything back. The multi-display item is enabled only when external
-  displays are connected and a layout exists for that set.
-- Press `⌃⌥⌘R` to restore whatever the **Restore Shortcut** submenu says:
-  **Auto-detect** (the default), **Laptop Layout**, or **Multi-Display
-  Layout**. Auto-detect picks the multi-display layout for the connected
-  displays if one exists, otherwise the laptop layout.
-- Turn on **Auto-Restore on Display Change** to restore without the shortcut.
-  It's off by default. When on, unplugging applies the laptop layout and
-  plugging in applies the multi-display layout for that set of displays, a
-  couple of seconds after macOS finishes rearranging windows. Docking to a set
-  with no saved layout does nothing.
-- Click the menu bar icon for the menu, when each layout was saved, and the
-  **Launch at Login** toggle.
+1. Arrange your windows the way you like them.
+2. Press `⌃⌥⌘S`, or click the menu bar icon and choose **Save Current Layout**.
+3. Later, when your windows are a mess, press `⌃⌥⌘R`. They go back.
 
-Restoring the laptop layout also works while docked, as long as the lid is
-open (clamshell mode has no built-in display to place windows on): it gathers
-every window onto the laptop screen, so you can pull the cable afterwards.
+Do step 1 and 2 once with the laptop on its own and once with your monitors
+plugged in. The app saves each as its own layout and knows which is which.
 
-## CLI
+The menu has a few more things in it:
 
-The same binary runs headless:
+- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore one
+  specific layout, whatever is plugged in. Restoring the laptop layout while
+  monitors are attached gathers every window onto the laptop screen, which is
+  handy right before you unplug.
+- **Restore Shortcut** picks what `⌃⌥⌘R` does. **Auto-detect**, the default,
+  restores the layout for whatever monitors are connected, or the laptop
+  layout if you haven't saved one for them. The other two choices pin the
+  shortcut to one layout.
+- **Auto-Restore on Display Change** does the restore for you. Unplug your
+  monitors and the laptop layout comes back a couple of seconds later. Plug
+  them in and the monitor layout comes back. It's off by default. If you dock
+  somewhere you haven't saved a layout for, it leaves your windows alone.
+- **Launch at Login** does what it says.
 
-```sh
-RestoreLayout --save              # save to the slot for the connected displays
-RestoreLayout --restore           # restore what the shortcut would
-RestoreLayout --restore laptop    # restore the laptop layout
-RestoreLayout --restore multi     # restore the layout for the connected displays
-RestoreLayout --list              # print displays, then windows and frames
-```
+Saving again replaces the layout for the monitors connected at that moment.
 
-`--save` prints which slot it wrote. `--list` shows each connected display
-with its UUID, then each window with its anchor display and its frame
-relative to that display.
+## Good to know
 
-Layouts and the shortcut setting are plain JSON at
-`~/Library/Application Support/RestoreLayout/layouts.json`. A v1
-`layout.json` in the same folder is migrated into the laptop slot on first
-load and left in place.
+- Restore only moves windows that were open when you saved, matched by app and
+  by order. If you saved with one browser window and now have two, only one
+  moves. Save again and both will.
+- Minimized windows, full-screen windows, and windows on other desktops stay
+  where they are. Apps that aren't running are skipped.
+- With the lid closed there's no laptop screen, so the laptop layout can't be
+  restored until you open it.
+
+## Why I built it
+
+On my laptop screen the layout is always the same: terminal and notes in a
+narrow column on the left, editor and browser filling the rest. macOS doesn't
+remember it. Unplug a monitor and every window lands somewhere random, and I'd
+rebuild the arrangement by hand several times a day. Now it's one key.
 
 ## How it works
 
-Save reads the Accessibility window list of every regular app and records each
-visible, standard, non-minimized window's frame as an offset from the top-left
-corner of its anchor display: the display the window overlaps most. A laptop
-layout is one where every window anchors to the built-in display.
+When you save, the app asks macOS for the position and size of every visible
+window and writes them down relative to the screen each window is on. When
+you restore, it finds each of those windows again and moves it back.
 
-Displays are identified by the UUID macOS assigns them. At restore each saved
-display is matched to a live one by UUID first, then by vendor, model, and
-size in points (a monitor with a junk serial can change UUID when it moves
-ports), and finally falls back to the built-in display. Windows whose display
-can't be resolved at all are skipped. Frames are applied as saved; if a
-display's size changed, restore reports a warning rather than scaling.
+Two details make this reliable. Each window is resized, then moved, then
+resized again, because macOS otherwise squeezes a window to fit the screen it
+is currently on before it can move. And after every move the app reads the
+window's position back and retries briefly if it didn't land, instead of
+trusting that the move worked.
 
-Restore pairs saved and live windows by app and window order, never by title
-(browser tab titles change constantly). It applies each frame as
-size → position → size, because macOS otherwise clamps windows to fit whatever
-display they currently occupy, then reads the frame back and retries briefly
-on a mismatch. Chromium apps get `AXEnhancedUserInterface` disabled during the
-move; with it on, a single resize can stall Chrome for seconds.
+Monitors are recognized by the identifier macOS gives them, with a fallback on
+make, model, and size in case that identifier changes when a monitor is moved
+to a different port. Chrome and other Chromium apps get one accessibility
+setting switched off during the move, because with it on, a single resize can
+freeze Chrome for several seconds.
 
-Restore skips minimized and fullscreen windows, windows on other Spaces
-(macOS offers no public API for those), apps that aren't running, and windows
-opened after the save. A skip never aborts the rest of the restore.
+## Command line
+
+The same binary works from a terminal, which needs its own Accessibility
+permission:
+
+```sh
+RestoreLayout --save              # save the layout for the connected displays
+RestoreLayout --restore           # restore what the shortcut would
+RestoreLayout --restore laptop    # restore the laptop layout
+RestoreLayout --restore multi     # restore the layout for the connected displays
+RestoreLayout --list              # show connected displays and every window
+```
+
+Layouts and settings are a plain JSON file at
+`~/Library/Application Support/RestoreLayout/layouts.json`. A `layout.json`
+from an older version is read into the laptop layout the first time and left
+where it is.
 
 ## Development
 
