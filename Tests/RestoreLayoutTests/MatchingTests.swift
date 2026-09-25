@@ -118,12 +118,17 @@ struct MatchingTests {
             withIntermediateDirectories: true
         )
         try Data(Self.v1LayoutJSON.utf8).write(to: store.legacyFileURL)
+        // The live built-in has a different size than the v1 file recorded.
+        var liveBuiltIn = Self.builtIn
+        liveBuiltIn.size = CGSize(width: 1512, height: 982)
 
-        let library = try #require(try store.load(builtIn: Self.builtIn))
+        let library = try #require(try store.load(builtIn: liveBuiltIn))
         let laptop = try #require(library.laptop)
+        var expectedAnchor = liveBuiltIn
+        expectedAnchor.size = CGSize(width: 1728, height: 1117)
 
         #expect(library.multiDisplay.isEmpty)
-        #expect(laptop.displays == [Self.builtIn])
+        #expect(laptop.displays == [expectedAnchor])
         #expect(laptop.savedAt == ISO8601DateFormatter().date(from: "2026-09-02T02:00:43Z"))
         #expect(laptop.windows.map(\.displayUUID) == [Self.builtIn.uuid, Self.builtIn.uuid])
         #expect(laptop.windows.map(\.bundleID) == ["com.google.Chrome", "com.mitchellh.ghostty"])
@@ -152,6 +157,51 @@ struct MatchingTests {
         #expect(placeholder.isBuiltIn)
         #expect(placeholder.size == CGSize(width: 1728, height: 1117))
         #expect(laptop.windows.allSatisfy { $0.displayUUID == placeholder.uuid })
+    }
+
+    @Test func loadThrowsOnInvalidLibraryJSON() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        try Data("{ not json".utf8).write(to: store.fileURL)
+
+        #expect(throws: (any Error).self) {
+            try store.load(builtIn: Self.builtIn)
+        }
+    }
+
+    @Test func loadPrefersV2LibraryOverV1File() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = LayoutLibrary(
+            shortcutTarget: .laptop,
+            laptop: Layout(
+                savedAt: Date(timeIntervalSince1970: 1_786_000_000),
+                displays: [Self.builtIn],
+                windows: [record(bundleID: "com.example.V2", index: 0)]
+            )
+        )
+        try store.save(library)
+        try Data(Self.v1LayoutJSON.utf8).write(to: store.legacyFileURL)
+
+        #expect(try store.load(builtIn: Self.builtIn) == library)
+    }
+
+    @Test func libraryDecodingIsTolerant() throws {
+        let decoder = JSONDecoder()
+        #expect(
+            try decoder.decode(LayoutLibrary.self, from: Data(#"{"laptop": null}"#.utf8))
+                == LayoutLibrary()
+        )
+        #expect(
+            try decoder.decode(
+                LayoutLibrary.self,
+                from: Data(#"{"shortcutTarget": "bogus"}"#.utf8)
+            ).shortcutTarget == .connectedDisplays
+        )
     }
 
     @Test func loadReturnsNilWhenNoFileExists() throws {

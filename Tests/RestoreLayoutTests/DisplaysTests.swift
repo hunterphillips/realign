@@ -49,10 +49,6 @@ struct DisplaysTests {
             displays: [Self.dell, Self.builtIn, Self.portrait]
         )
         #expect(reordered.fingerprint == docked.fingerprint)
-        #expect(
-            DisplayConfiguration.fingerprint(of: [Self.dell.info, Self.builtIn.info])
-                == DisplayConfiguration.fingerprint(of: [Self.builtIn.info, Self.dell.info])
-        )
     }
 
     @Test func laptopOnlyDockedAndClamshellDiffer() {
@@ -85,26 +81,61 @@ struct DisplaysTests {
         #expect(docked.anchor(for: window) == Self.builtIn)
     }
 
+    @Test func equalOverlapAnchorsToEarlierDisplay() {
+        // 100×500 on the built-in and 100×500 on the DELL.
+        let window = CGRect(x: 1628, y: 100, width: 200, height: 500)
+        #expect(docked.anchor(for: window) == Self.builtIn)
+        let reversed = DisplayConfiguration(displays: [Self.dell, Self.builtIn])
+        #expect(reversed.anchor(for: window) == Self.dell)
+    }
+
+    @Test func emptyConfigurationHasNoAnchor() {
+        let empty = DisplayConfiguration(displays: [])
+        #expect(empty.anchor(for: CGRect(x: 0, y: 0, width: 100, height: 100)) == nil)
+    }
+
     // MARK: - Resolve
 
     @Test func resolvesExactUUID() {
-        #expect(docked.resolve(Self.portrait.info) == Self.portrait)
+        let resolved = docked.resolveAll([Self.portrait.info])
+        #expect(resolved[Self.portrait.info.uuid] == Self.portrait)
     }
 
     @Test func resolvesChangedUUIDBySameVendorModelAndSize() {
         var saved = Self.dell.info
         saved.uuid = "00000000-0000-0000-0000-000000000000"
-        #expect(docked.resolve(saved) == Self.dell)
+        #expect(docked.resolveAll([saved])[saved.uuid] == Self.dell)
     }
 
     @Test func absentDisplayFallsBackToBuiltIn() {
         let laptop = DisplayConfiguration(displays: [Self.builtIn])
-        #expect(laptop.resolve(Self.dell.info) == Self.builtIn)
+        let resolved = laptop.resolveAll([Self.dell.info, Self.portrait.info])
+        // The built-in fallback is shared, not claimed.
+        #expect(resolved[Self.dell.info.uuid] == Self.builtIn)
+        #expect(resolved[Self.portrait.info.uuid] == Self.builtIn)
     }
 
-    @Test func absentDisplayWithoutBuiltInResolvesToNil() {
+    @Test func absentDisplayWithoutBuiltInIsUnresolved() {
         let clamshell = DisplayConfiguration(displays: [Self.portrait])
-        #expect(clamshell.resolve(Self.dell.info) == nil)
+        let resolved = clamshell.resolveAll([Self.dell.info])
+        #expect(resolved[Self.dell.info.uuid] == nil)
+        #expect(resolved.isEmpty)
+    }
+
+    @Test func exactMatchesAreClaimedBeforeSignatureFallback() {
+        var dellA = Self.dell
+        dellA.info.uuid = "AAAAAAAA-0000-0000-0000-000000000000"
+        var dellB = Self.dell
+        dellB.info.uuid = "BBBBBBBB-0000-0000-0000-000000000000"
+        dellB.axFrame.origin.x += 1920
+        let live = DisplayConfiguration(displays: [Self.builtIn, dellA, dellB])
+
+        var savedB = dellB.info
+        savedB.uuid = "CCCCCCCC-0000-0000-0000-000000000000"
+        let resolved = live.resolveAll([savedB, dellA.info])
+
+        #expect(resolved[dellA.info.uuid] == dellA)
+        #expect(resolved[savedB.uuid] == dellB)
     }
 
     // MARK: - Library matching
@@ -112,7 +143,9 @@ struct DisplaysTests {
     @Test func matchingKeyPrefersExactFingerprint() {
         let library = [
             docked.fingerprint: layout(displays: docked.displays.map(\.info)),
-            "other": layout(displays: docked.displays.map(\.info)),
+            // Sorts before any UUID and has the same signature multiset, so
+            // the fallback would pick it if exact matching were broken.
+            "0-decoy": layout(displays: docked.displays.map(\.info)),
         ]
         #expect(
             DisplayConfiguration.matchingKey(for: docked, in: library)

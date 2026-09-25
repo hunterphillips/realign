@@ -45,6 +45,23 @@ struct LayoutLibrary: Codable, Equatable, Sendable {
     var multiDisplay: [String: Layout] = [:]
 }
 
+extension LayoutLibrary {
+    /// Missing keys take their defaults; an unknown `shortcutTarget` falls
+    /// back to `.connectedDisplays` instead of failing the whole library.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        version = try container.decodeIfPresent(Int.self, forKey: .version) ?? 2
+        shortcutTarget = try container
+            .decodeIfPresent(String.self, forKey: .shortcutTarget)
+            .flatMap(ShortcutTarget.init(rawValue:)) ?? .connectedDisplays
+        laptop = try container.decodeIfPresent(Layout.self, forKey: .laptop)
+        multiDisplay = try container.decodeIfPresent(
+            [String: Layout].self,
+            forKey: .multiDisplay
+        ) ?? [:]
+    }
+}
+
 /// The v1 `layout.json` shape: one layout, frames relative to the built-in
 /// display, no per-window anchor. Decoded only for migration.
 struct LegacyLayoutV1: Decodable {
@@ -63,11 +80,14 @@ struct LegacyLayoutV1: Decodable {
 
 extension Layout {
     /// Anchors every v1 record to the built-in display. v1 frames were already
-    /// built-in-relative, so they carry over untouched.
+    /// built-in-relative, so they carry over untouched. The stored anchor keeps
+    /// the v1 `builtInSize`, since that is the size the frames were saved at.
     static func migrated(fromV1 legacy: LegacyLayoutV1, builtIn: DisplayInfo) -> Layout {
-        Layout(
+        var anchor = builtIn
+        anchor.size = legacy.builtInSize
+        return Layout(
             savedAt: legacy.savedAt,
-            displays: [builtIn],
+            displays: [anchor],
             windows: legacy.windows.map { window in
                 WindowRecord(
                     bundleID: window.bundleID,

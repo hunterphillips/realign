@@ -53,17 +53,36 @@ struct DisplayConfiguration: Equatable, Sendable {
         return best ?? builtIn ?? displays.first
     }
 
-    /// Exact UUID → first live display with the same (vendor, model, size) →
-    /// live built-in → nil (the caller skips the window).
-    func resolve(_ saved: DisplayInfo) -> DisplayGeometry? {
-        if let exact = displays.first(where: { $0.info.uuid == saved.uuid }) {
-            return exact
+    /// Resolves every saved display at once. Exact UUID matches are claimed
+    /// first; the signature fallback then only considers live displays that
+    /// no exact match has claimed. Built-in fallback is shared (not claimed).
+    /// Keyed by saved UUID; an absent key means unresolved (the caller skips
+    /// that display's windows).
+    func resolveAll(_ saved: [DisplayInfo]) -> [String: DisplayGeometry] {
+        var resolved: [String: DisplayGeometry] = [:]
+        var claimed = Set<String>()
+
+        for info in saved where resolved[info.uuid] == nil {
+            if let exact = displays.first(where: { $0.info.uuid == info.uuid }) {
+                resolved[info.uuid] = exact
+                claimed.insert(exact.info.uuid)
+            }
         }
-        let signature = Signature(saved)
-        if let similar = displays.first(where: { Signature($0.info) == signature }) {
-            return similar
+        for info in saved where resolved[info.uuid] == nil {
+            let signature = Signature(info)
+            if let similar = displays.first(where: {
+                !claimed.contains($0.info.uuid) && Signature($0.info) == signature
+            }) {
+                resolved[info.uuid] = similar
+                claimed.insert(similar.info.uuid)
+            }
         }
-        return builtIn
+        if let builtIn {
+            for info in saved where resolved[info.uuid] == nil {
+                resolved[info.uuid] = builtIn
+            }
+        }
+        return resolved
     }
 
     /// Exact fingerprint key, else the first key (in sorted order) whose
@@ -91,6 +110,9 @@ struct DisplayConfiguration: Equatable, Sendable {
             }
             let uuid = CGDisplayCreateUUIDFromDisplayID(displayID)
                 .map { CFUUIDCreateString(nil, $0.takeRetainedValue()) as String }
+                // CGDirectDisplayIDs are not stable across reboots, so a
+                // fingerprint containing this key may never match again. It
+                // exists only so capture never throws.
                 ?? "display-\(displayID)"
             let info = DisplayInfo(
                 uuid: uuid,

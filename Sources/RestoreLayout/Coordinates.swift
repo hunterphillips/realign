@@ -7,13 +7,6 @@ import CoreGraphics
 /// AX global coordinates use the same axis directions. AppKit screen coordinates
 /// are flipped here, and nowhere else, against `NSScreen.screens[0]`.
 enum Coordinates {
-    static func builtInScreen() -> NSScreen? {
-        NSScreen.screens.first { screen in
-            guard let displayID = displayID(of: screen) else { return false }
-            return CGDisplayIsBuiltin(displayID) != 0
-        }
-    }
-
     static func displayID(of screen: NSScreen) -> CGDirectDisplayID? {
         let key = NSDeviceDescriptionKey("NSScreenNumber")
         guard let number = screen.deviceDescription[key] as? NSNumber else {
