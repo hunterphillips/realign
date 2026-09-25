@@ -206,9 +206,16 @@ enum RestoreEngine {
 
         let anchors = configuration.resolveAll(layout.displays)
         if anchors.isEmpty && !layout.displays.isEmpty {
+            let selectedLaptop = report.target == .laptop
             report.target = nil
             report.skipped = layout.windows.count
-            report.reasons.append("No saved display is connected; nothing to restore.")
+            if selectedLaptop && configuration.builtIn == nil {
+                report.reasons.append(
+                    "Laptop layout needs the built-in display (lid closed?); nothing to restore."
+                )
+            } else {
+                report.reasons.append("No saved display is connected; nothing to restore.")
+            }
             return report
         }
         report.reasons.append(contentsOf: sizeWarnings(saved: layout.displays, resolved: anchors))

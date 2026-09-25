@@ -62,22 +62,32 @@ struct LayoutStore: Sendable {
         let fileManager = FileManager.default
 
         if fileManager.fileExists(atPath: fileURL.path) {
-            let library = try decoder.decode(
-                LayoutLibrary.self,
-                from: Data(contentsOf: fileURL)
-            )
-            guard library.version <= LayoutLibrary.currentVersion else {
-                throw LayoutStoreError.newerVersion(library.version)
+            let data = try Data(contentsOf: fileURL)
+            // Check the version before the full decode so a newer file with an
+            // unknown shape reports `newerVersion`, not a decoding error.
+            let header = try decoder.decode(VersionHeader.self, from: data)
+            if let version = header.version, version > LayoutLibrary.currentVersion {
+                throw LayoutStoreError.newerVersion(version)
             }
-            return library
+            return try decoder.decode(LayoutLibrary.self, from: data)
         }
         guard fileManager.fileExists(atPath: legacyFileURL.path) else {
             return nil
         }
-        let legacy = try decoder.decode(
-            LegacyLayoutV1.self,
-            from: Data(contentsOf: legacyFileURL)
-        )
+        // A broken v1 file does not block saves: the never-overwrite rule
+        // protects `layouts.json`, and writing it leaves `layout.json` alone.
+        let legacy: LegacyLayoutV1
+        do {
+            legacy = try decoder.decode(
+                LegacyLayoutV1.self,
+                from: Data(contentsOf: legacyFileURL)
+            )
+        } catch {
+            FileHandle.standardError.write(Data(
+                "RestoreLayout: ignoring unreadable \(legacyFileURL.path): \(error.localizedDescription)\n".utf8
+            ))
+            return nil
+        }
         let anchor = builtIn ?? DisplayInfo(
             uuid: "builtin",
             name: "Built-in Display",
@@ -87,5 +97,9 @@ struct LayoutStore: Sendable {
             size: legacy.builtInSize
         )
         return LayoutLibrary(laptop: .migrated(fromV1: legacy, builtIn: anchor))
+    }
+
+    private struct VersionHeader: Decodable {
+        var version: Int?
     }
 }

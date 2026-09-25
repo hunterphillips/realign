@@ -63,6 +63,12 @@ identity and Accessibility approval.
 - `DisplayConfiguration.current()` is the only place that reads `NSScreen`
   for display identity.
 - Never overwrite an unreadable `layouts.json`: a load error aborts the save.
+- Resolution claims: an exact UUID match claims its live display; the
+  vendor+model+size fallback only considers unclaimed displays; the built-in
+  fallback is shared.
+- If no saved display resolves (e.g. lid closed with no matching
+  multi-display layout), the restore is not applied: one reason line,
+  `applied == false`, CLI exit 1.
 - Skips and failures are per-window. Never abort the rest of a restore.
 - Hotkey/manual only: no display notifications, debounce, polling, named
   layouts, app launching, Space manipulation, or settings UI beyond the

@@ -1,6 +1,8 @@
 #!/bin/zsh
 # Best-effort integration smoke test. Requires Accessibility access for the
 # terminal and creates temporary TextEdit/Calculator windows.
+# WARNING: `--save` writes to the real layouts.json and overwrites the saved
+# slot for the currently connected displays.
 set -eu
 cd "$(dirname "$0")"
 
@@ -32,7 +34,7 @@ end tell
 APPLESCRIPT
 
 sleep 0.2
-"$BINARY" --restore
+"$BINARY" --restore laptop
 "$BINARY" --list
 echo "Inspect the listed TextEdit/Calculator frames; restored values should be within 2pt."
 

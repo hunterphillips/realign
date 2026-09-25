@@ -183,6 +183,34 @@ struct MatchingTests {
         }
     }
 
+    @Test func loadThrowsNewerVersionForUnknownShape() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        let version = LayoutLibrary.currentVersion + 1
+        try Data(#"{"version": \#(version), "layoutsV3": {}, "laptop": 7}"#.utf8)
+            .write(to: store.fileURL)
+
+        #expect(throws: LayoutStoreError.self) {
+            try store.load(builtIn: Self.builtIn)
+        }
+    }
+
+    @Test func loadReturnsNilOnCorruptV1File() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        try Data("{ not json".utf8).write(to: store.legacyFileURL)
+
+        #expect(try store.load(builtIn: Self.builtIn) == nil)
+    }
+
     @Test func loadPrefersV2LibraryOverV1File() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

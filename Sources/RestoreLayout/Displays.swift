@@ -77,6 +77,9 @@ struct DisplayConfiguration: Equatable, Sendable {
                 claimed.insert(similar.info.uuid)
             }
         }
+        // In the current flow `select` returns a multi-display layout only on
+        // a full signature match, so this pass is reached today only by the
+        // v1 clamshell placeholder. Kept for the planned auto-restore trigger.
         if let builtIn {
             for info in saved where resolved[info.uuid] == nil {
                 resolved[info.uuid] = builtIn

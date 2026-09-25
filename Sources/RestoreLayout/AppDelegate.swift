@@ -169,7 +169,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return nil
         }
 
-        var canRestoreLaptop: Bool { trusted && library?.laptop != nil }
+        var canRestoreLaptop: Bool {
+            trusted && library?.laptop != nil && configuration.builtIn != nil
+        }
         var canRestoreMultiDisplay: Bool { trusted && multiDisplayLayout != nil }
 
         /// Which restore item carries the ⌃⌥⌘R badge.
