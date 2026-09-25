@@ -1,17 +1,83 @@
 import Foundation
 
+/// Identity and size of one display, as recorded in a saved layout.
+struct DisplayInfo: Codable, Equatable, Hashable, Sendable {
+    /// `CGDisplayCreateUUIDFromDisplayID`, string form.
+    var uuid: String
+    /// `NSScreen.localizedName`; display only, never used for matching.
+    var name: String
+    var vendor: UInt32
+    var model: UInt32
+    var isBuiltIn: Bool
+    /// Points.
+    var size: CGSize
+}
+
 struct WindowRecord: Codable, Equatable, Sendable {
     var bundleID: String
     var appName: String
     var title: String
     var indexInApp: Int
-    /// Built-in-display-relative, top-left-origin coordinates in points.
+    /// Anchor display: a `DisplayInfo.uuid` in the owning `Layout.displays`.
+    var displayUUID: String
+    /// Anchor-display-relative, top-left-origin coordinates in points.
     var frame: CGRect
 }
 
 struct Layout: Codable, Equatable, Sendable {
     var savedAt: Date
-    var builtInSize: CGSize
+    var displays: [DisplayInfo]
     var windows: [WindowRecord]
 }
 
+enum ShortcutTarget: String, Codable, Sendable {
+    /// Multi-display layout for the current display set, else laptop.
+    case connectedDisplays
+    case laptop
+    case multiDisplay
+}
+
+struct LayoutLibrary: Codable, Equatable, Sendable {
+    var version: Int = 2
+    var shortcutTarget: ShortcutTarget = .connectedDisplays
+    var laptop: Layout?
+    /// Keyed by `DisplayConfiguration.fingerprint`.
+    var multiDisplay: [String: Layout] = [:]
+}
+
+/// The v1 `layout.json` shape: one layout, frames relative to the built-in
+/// display, no per-window anchor. Decoded only for migration.
+struct LegacyLayoutV1: Decodable {
+    struct Window: Decodable {
+        var bundleID: String
+        var appName: String
+        var title: String
+        var indexInApp: Int
+        var frame: CGRect
+    }
+
+    var savedAt: Date
+    var builtInSize: CGSize
+    var windows: [Window]
+}
+
+extension Layout {
+    /// Anchors every v1 record to the built-in display. v1 frames were already
+    /// built-in-relative, so they carry over untouched.
+    static func migrated(fromV1 legacy: LegacyLayoutV1, builtIn: DisplayInfo) -> Layout {
+        Layout(
+            savedAt: legacy.savedAt,
+            displays: [builtIn],
+            windows: legacy.windows.map { window in
+                WindowRecord(
+                    bundleID: window.bundleID,
+                    appName: window.appName,
+                    title: window.title,
+                    indexInApp: window.indexInApp,
+                    displayUUID: builtIn.uuid,
+                    frame: window.frame
+                )
+            }
+        )
+    }
+}

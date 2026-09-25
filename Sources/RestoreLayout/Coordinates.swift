@@ -1,8 +1,8 @@
 import AppKit
 import CoreGraphics
 
-/// The canonical stored coordinate system is built-in-display-relative:
-/// a frame origin is the offset from the built-in display's top-left corner,
+/// The canonical stored coordinate system is anchor-display-relative:
+/// a frame origin is the offset from its anchor display's top-left corner,
 /// measured in points, with x increasing rightward and y increasing downward.
 /// AX global coordinates use the same axis directions. AppKit screen coordinates
 /// are flipped here, and nowhere else, against `NSScreen.screens[0]`.
@@ -40,49 +40,29 @@ enum Coordinates {
         )
     }
 
-    static func builtInRelative(
+    static func displayRelative(
         fromAXGlobal frame: CGRect,
-        builtInAXOrigin: CGPoint
+        displayAXOrigin: CGPoint
     ) -> CGRect {
         CGRect(
             origin: CGPoint(
-                x: frame.origin.x - builtInAXOrigin.x,
-                y: frame.origin.y - builtInAXOrigin.y
+                x: frame.origin.x - displayAXOrigin.x,
+                y: frame.origin.y - displayAXOrigin.y
             ),
             size: frame.size
         )
     }
 
     static func axGlobal(
-        fromBuiltInRelative frame: CGRect,
-        builtInAXOrigin: CGPoint
+        fromDisplayRelative frame: CGRect,
+        displayAXOrigin: CGPoint
     ) -> CGRect {
         CGRect(
             origin: CGPoint(
-                x: frame.origin.x + builtInAXOrigin.x,
-                y: frame.origin.y + builtInAXOrigin.y
+                x: frame.origin.x + displayAXOrigin.x,
+                y: frame.origin.y + displayAXOrigin.y
             ),
             size: frame.size
-        )
-    }
-
-    static func builtInRelative(
-        fromAXGlobal frame: CGRect,
-        builtInScreen: NSScreen
-    ) -> CGRect {
-        builtInRelative(
-            fromAXGlobal: frame,
-            builtInAXOrigin: axGlobalOrigin(of: builtInScreen)
-        )
-    }
-
-    static func axGlobal(
-        fromBuiltInRelative frame: CGRect,
-        builtInScreen: NSScreen
-    ) -> CGRect {
-        axGlobal(
-            fromBuiltInRelative: frame,
-            builtInAXOrigin: axGlobalOrigin(of: builtInScreen)
         )
     }
 }

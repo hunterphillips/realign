@@ -13,9 +13,9 @@ struct CoordinatesTests {
 
         let global = CGRect(x: 12, y: 34, width: 700, height: 800)
         #expect(
-            Coordinates.builtInRelative(
+            Coordinates.displayRelative(
                 fromAXGlobal: global,
-                builtInAXOrigin: origin
+                displayAXOrigin: origin
             ) == global
         )
     }
@@ -34,9 +34,9 @@ struct CoordinatesTests {
             width: 900,
             height: 600
         )
-        let relative = Coordinates.builtInRelative(
+        let relative = Coordinates.displayRelative(
             fromAXGlobal: externalWindow,
-            builtInAXOrigin: builtInOrigin
+            displayAXOrigin: builtInOrigin
         )
         #expect(relative.origin.y == -700)
     }
@@ -44,9 +44,9 @@ struct CoordinatesTests {
     @Test func externalLeftProducesNegativeRelativeX() {
         let builtInOrigin = CGPoint(x: 1920, y: 98)
         let externalWindow = CGRect(x: 200, y: 150, width: 800, height: 700)
-        let relative = Coordinates.builtInRelative(
+        let relative = Coordinates.displayRelative(
             fromAXGlobal: externalWindow,
-            builtInAXOrigin: builtInOrigin
+            displayAXOrigin: builtInOrigin
         )
         #expect(relative.origin.x == -1720)
         #expect(relative.origin.y == 52)
@@ -74,16 +74,38 @@ struct CoordinatesTests {
 
         for frame in frames {
             for origin in origins {
-                let relative = Coordinates.builtInRelative(
+                let relative = Coordinates.displayRelative(
                     fromAXGlobal: frame,
-                    builtInAXOrigin: origin
+                    displayAXOrigin: origin
                 )
                 let roundTrip = Coordinates.axGlobal(
-                    fromBuiltInRelative: relative,
-                    builtInAXOrigin: origin
+                    fromDisplayRelative: relative,
+                    displayAXOrigin: origin
                 )
                 #expect(roundTrip == frame)
             }
         }
+    }
+
+    @Test func externalAnchorUsesSameConversion() {
+        // DELL U2415 to the right of the built-in: AX-global origin (1728, 0).
+        let dellOrigin = Coordinates.axGlobalOrigin(
+            appKitFrame: CGRect(x: 1728, y: -83, width: 1920, height: 1200),
+            primaryScreenHeight: 1117
+        )
+        #expect(dellOrigin == CGPoint(x: 1728, y: 0))
+
+        let global = CGRect(x: 1828, y: 50, width: 900, height: 700)
+        let relative = Coordinates.displayRelative(
+            fromAXGlobal: global,
+            displayAXOrigin: dellOrigin
+        )
+        #expect(relative == CGRect(x: 100, y: 50, width: 900, height: 700))
+        #expect(
+            Coordinates.axGlobal(
+                fromDisplayRelative: relative,
+                displayAXOrigin: dellOrigin
+            ) == global
+        )
     }
 }

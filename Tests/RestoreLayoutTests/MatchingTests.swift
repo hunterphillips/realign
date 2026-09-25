@@ -83,39 +83,144 @@ struct MatchingTests {
     }
 
     @Test func layoutJSONRoundTrip() throws {
-        let layout = Layout(
+        let laptop = Layout(
             savedAt: Date(timeIntervalSince1970: 1_786_000_000),
-            builtInSize: CGSize(width: 1512, height: 982),
+            displays: [Self.builtIn],
+            windows: [record(bundleID: "com.example.App", title: "Window", index: 0)]
+        )
+        let docked = Layout(
+            savedAt: Date(timeIntervalSince1970: 1_786_000_100),
+            displays: [Self.builtIn, Self.dell],
             windows: [
-                record(
-                    bundleID: "com.example.App",
-                    title: "Window",
-                    index: 0
-                ),
+                record(bundleID: "com.example.App", index: 0),
+                record(bundleID: "com.example.App", index: 1, displayUUID: Self.dell.uuid),
             ]
         )
-        let testDirectory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("RestoreLayoutTests-\(UUID().uuidString)")
-        defer { try? FileManager.default.removeItem(at: testDirectory) }
-        let store = LayoutStore(
-            fileURL: testDirectory.appendingPathComponent("layout.json")
+        let dockedKey = DisplayConfiguration.fingerprint(of: docked.displays)
+        let library = LayoutLibrary(
+            shortcutTarget: .multiDisplay,
+            laptop: laptop,
+            multiDisplay: [dockedKey: docked]
         )
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
 
-        try store.save(layout)
+        try store.save(library)
 
-        #expect(try store.load() == layout)
+        #expect(try store.load(builtIn: Self.builtIn) == library)
+    }
+
+    @Test func migratesV1LayoutIntoLaptopSlot() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        try Data(Self.v1LayoutJSON.utf8).write(to: store.legacyFileURL)
+
+        let library = try #require(try store.load(builtIn: Self.builtIn))
+        let laptop = try #require(library.laptop)
+
+        #expect(library.multiDisplay.isEmpty)
+        #expect(laptop.displays == [Self.builtIn])
+        #expect(laptop.savedAt == ISO8601DateFormatter().date(from: "2026-09-02T02:00:43Z"))
+        #expect(laptop.windows.map(\.displayUUID) == [Self.builtIn.uuid, Self.builtIn.uuid])
+        #expect(laptop.windows.map(\.bundleID) == ["com.google.Chrome", "com.mitchellh.ghostty"])
+        #expect(laptop.windows.map(\.frame) == [
+            CGRect(x: 571, y: 33, width: 1157, height: 1041),
+            CGRect(x: 0, y: 34, width: 570, height: 1042),
+        ])
+        // Migration is read-only: v2 is written on the next save.
+        #expect(!FileManager.default.fileExists(atPath: store.fileURL.path))
+        #expect(FileManager.default.fileExists(atPath: store.legacyFileURL.path))
+    }
+
+    @Test func migrationInClamshellAnchorsToBuiltInPlaceholder() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        try Data(Self.v1LayoutJSON.utf8).write(to: store.legacyFileURL)
+
+        let laptop = try #require(try store.load(builtIn: nil)?.laptop)
+        let placeholder = try #require(laptop.displays.first)
+
+        #expect(laptop.displays.count == 1)
+        #expect(placeholder.isBuiltIn)
+        #expect(placeholder.size == CGSize(width: 1728, height: 1117))
+        #expect(laptop.windows.allSatisfy { $0.displayUUID == placeholder.uuid })
+    }
+
+    @Test func loadReturnsNilWhenNoFileExists() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        #expect(try store.load(builtIn: Self.builtIn) == nil)
+    }
+
+    private static let builtIn = DisplayInfo(
+        uuid: "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        name: "Built-in Retina Display",
+        vendor: 1552,
+        model: 41053,
+        isBuiltIn: true,
+        size: CGSize(width: 1728, height: 1117)
+    )
+
+    private static let dell = DisplayInfo(
+        uuid: "DA3DD560-1F03-4878-B206-5C6BBC3BEF60",
+        name: "DELL U2415",
+        vendor: 4268,
+        model: 41146,
+        isBuiltIn: false,
+        size: CGSize(width: 1920, height: 1200)
+    )
+
+    /// Shape of the real v1 `layout.json`.
+    private static let v1LayoutJSON = """
+    {
+      "builtInSize" : [ 1728, 1117 ],
+      "savedAt" : "2026-09-02T02:00:43Z",
+      "windows" : [
+        {
+          "appName" : "Google Chrome",
+          "bundleID" : "com.google.Chrome",
+          "frame" : [ [ 571, 33 ], [ 1157, 1041 ] ],
+          "indexInApp" : 0,
+          "title" : "Focus - Google Chrome - Hunter"
+        },
+        {
+          "appName" : "Ghostty",
+          "bundleID" : "com.mitchellh.ghostty",
+          "frame" : [ [ 0, 34 ], [ 570, 1042 ] ],
+          "indexInApp" : 0,
+          "title" : "second-brain"
+        }
+      ]
+    }
+    """
+
+    private func makeStore() -> (LayoutStore, URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RestoreLayoutTests-\(UUID().uuidString)")
+        let store = LayoutStore(fileURL: directory.appendingPathComponent("layouts.json"))
+        return (store, directory)
     }
 
     private func record(
         bundleID: String,
         title: String = "",
-        index: Int
+        index: Int,
+        displayUUID: String = "37D8832A-2D66-02CA-B9F7-8F30A301B230"
     ) -> WindowRecord {
         WindowRecord(
             bundleID: bundleID,
             appName: bundleID,
             title: title,
             indexInApp: index,
+            displayUUID: displayUUID,
             frame: CGRect(x: index * 10, y: index * 20, width: 500, height: 400)
         )
     }

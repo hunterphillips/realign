@@ -22,8 +22,9 @@ restoring them relative to the built-in display.
 - `WindowEnumerator.swift` — all AX discovery and filtering
 - `AXWindow.swift` — thin AX attribute wrapper
 - `Coordinates.swift` — all AX/AppKit/stored coordinate conversion
-- `Models.swift` — Codable layout data
-- `LayoutStore.swift` — atomic JSON persistence
+- `Displays.swift` — live display set, fingerprint, anchor/resolve/match logic
+- `Models.swift` — Codable layout library data and v1 migration
+- `LayoutStore.swift` — atomic JSON persistence (`layouts.json`, reads v1 `layout.json`)
 - `CaptureEngine.swift` — list and save paths
 - `RestoreEngine.swift` — pure matching and verified frame application
 
@@ -51,8 +52,11 @@ identity and Accessibility approval.
   Never match by title.
 - Keep every coordinate-space conversion in `Coordinates.swift`.
   `NSScreen.screens[0]`, not `NSScreen.main`, defines the AppKit/AX flip.
-- Stored frames are offsets from the built-in display's top-left, in points,
-  with y increasing downward. Do not scale on a resolution mismatch in v1.
+- Stored frames are offsets from the anchor display's top-left, in points,
+  with y increasing downward. Each `WindowRecord.displayUUID` names its
+  anchor. Do not scale on a resolution mismatch.
+- `DisplayConfiguration.current()` is the only place that reads NSScreen for
+  display identity.
 - Skips and failures are per-window. Never abort the rest of a restore.
 - V1 is hotkey/manual only: no display notifications, debounce, polling,
   named layouts, app launching, Space manipulation, or settings UI.

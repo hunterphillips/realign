@@ -176,7 +176,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func savedAtDescription() -> String {
         do {
-            guard let layout = try store.load() else {
+            let builtIn = DisplayConfiguration.current().builtIn?.info
+            guard let layout = try store.load(builtIn: builtIn)?.laptop else {
                 return "No layout saved"
             }
             let formatter = DateFormatter()

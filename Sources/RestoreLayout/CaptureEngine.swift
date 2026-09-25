@@ -15,7 +15,7 @@ enum CaptureError: LocalizedError {
 enum CaptureEngine {
     @MainActor
     static func capture() throws -> Layout {
-        guard let builtIn = Coordinates.builtInScreen() else {
+        guard let builtIn = DisplayConfiguration.current().builtIn else {
             throw CaptureError.builtInDisplayNotFound
         }
         let groups = WindowEnumerator.visibleStandardWindows()
@@ -31,9 +31,10 @@ enum CaptureEngine {
                     appName: appName,
                     title: window.title,
                     indexInApp: index,
-                    frame: Coordinates.builtInRelative(
+                    displayUUID: builtIn.info.uuid,
+                    frame: Coordinates.displayRelative(
                         fromAXGlobal: globalFrame,
-                        builtInScreen: builtIn
+                        displayAXOrigin: builtIn.axFrame.origin
                     )
                 ))
             }
@@ -41,7 +42,7 @@ enum CaptureEngine {
 
         return Layout(
             savedAt: Date(),
-            builtInSize: builtIn.frame.size,
+            displays: [builtIn.info],
             windows: records
         )
     }
@@ -50,13 +51,15 @@ enum CaptureEngine {
     @discardableResult
     static func captureAndSave(store: LayoutStore = LayoutStore()) throws -> Layout {
         let layout = try capture()
-        try store.save(layout)
+        var library = (try? store.load(builtIn: layout.displays.first)) ?? LayoutLibrary()
+        library.laptop = layout
+        try store.save(library)
         return layout
     }
 
     @MainActor
     static func listDescription() throws -> String {
-        guard let builtIn = Coordinates.builtInScreen() else {
+        guard let builtIn = DisplayConfiguration.current().builtIn else {
             throw CaptureError.builtInDisplayNotFound
         }
         let groups = WindowEnumerator.visibleStandardWindows()
@@ -67,9 +70,9 @@ enum CaptureEngine {
             lines.append("\(appName) [\(bundleID)]")
             for (index, window) in group.windows.enumerated() {
                 guard let globalFrame = window.frame else { continue }
-                let relative = Coordinates.builtInRelative(
+                let relative = Coordinates.displayRelative(
                     fromAXGlobal: globalFrame,
-                    builtInScreen: builtIn
+                    displayAXOrigin: builtIn.axFrame.origin
                 )
                 lines.append(
                     "  [\(index)] \(window.title.debugDescription) " +

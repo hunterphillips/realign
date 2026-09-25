@@ -77,9 +77,10 @@ enum RestoreEngine {
     @MainActor
     static func restore(store: LayoutStore = LayoutStore()) -> RestoreReport {
         var report = RestoreReport()
+        let builtIn = DisplayConfiguration.current().builtIn
         let layout: Layout
         do {
-            guard let loaded = try store.load() else {
+            guard let loaded = try store.load(builtIn: builtIn?.info)?.laptop else {
                 report.reasons.append("No saved layout. Save a layout first.")
                 return report
             }
@@ -90,15 +91,16 @@ enum RestoreEngine {
             return report
         }
 
-        guard let builtIn = Coordinates.builtInScreen() else {
+        guard let builtIn else {
             report.failed += layout.windows.count
             report.reasons.append("No built-in display was found.")
             return report
         }
-        if !sizesMatch(layout.builtInSize, builtIn.frame.size) {
+        if let savedBuiltIn = layout.displays.first(where: \.isBuiltIn),
+           !sizesMatch(savedBuiltIn.size, builtIn.info.size) {
             report.reasons.append(
-                "Built-in display size changed from \(format(layout.builtInSize)) " +
-                "to \(format(builtIn.frame.size)); applying saved points without scaling."
+                "Built-in display size changed from \(format(savedBuiltIn.size)) " +
+                "to \(format(builtIn.info.size)); applying saved points without scaling."
             )
         }
 
@@ -144,7 +146,7 @@ enum RestoreEngine {
     private static func apply(
         appMatches: [WindowMatch],
         liveWindows: [LiveWindowDescriptor: AXWindow],
-        builtIn: NSScreen,
+        builtIn: DisplayGeometry,
         report: inout RestoreReport
     ) {
         guard let firstMatch = appMatches.first,
@@ -177,8 +179,8 @@ enum RestoreEngine {
                 continue
             }
             let target = Coordinates.axGlobal(
-                fromBuiltInRelative: match.saved.frame,
-                builtInScreen: builtIn
+                fromDisplayRelative: match.saved.frame,
+                displayAXOrigin: builtIn.axFrame.origin
             )
             if applyAndVerify(window: window, target: target) {
                 report.restored += 1
