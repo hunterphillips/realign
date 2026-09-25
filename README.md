@@ -115,8 +115,8 @@ swift build && swift test   # unit tests cover coordinates, matching, persistenc
 ## Roadmap
 
 Planned: an opt-in trigger that restores automatically when the display
-configuration changes. It would call the same resolver as **Layout for
-Connected Displays**. Today the app does no display watching at all.
+configuration changes. It would call the same resolver as **Auto-detect**.
+Today the app does no display watching at all.
 
 ## License
 
