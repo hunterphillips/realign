@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             keyCode: UInt32(kVK_ANSI_R),
             modifiers: modifiers
         ) { [weak self] in
-            Task { @MainActor in self?.restoreLayout() }
+            Task { @MainActor in self?.restoreShortcutTarget() }
         }
         saveHotKey = GlobalHotKey(
             identifier: 2,
@@ -58,7 +58,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Actions
 
-    @objc private func restoreLayout() {
+    @objc private func restoreLaptop() {
+        restore(target: .laptop)
+    }
+
+    @objc private func restoreMultiDisplay() {
+        restore(target: .multiDisplay)
+    }
+
+    private func restoreShortcutTarget() {
+        let target = (try? RestoreEngine.shortcutTarget(store: store)) ?? .connectedDisplays
+        restore(target: target)
+    }
+
+    private func restore(target: RestoreTarget) {
         guard AXPermission.isTrusted else {
             promptForPermission()
             return
@@ -67,12 +80,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             symbol: "arrow.triangle.2.circlepath",
             description: "Restoring layout"
         )
-        let target = (try? RestoreEngine.shortcutTarget(store: store)) ?? .connectedDisplays
         let report = RestoreEngine.restore(target: target, store: store)
-        let isPartial = report.skipped > 0 || report.failed > 0
-        statusItem.button?.toolTip = isPartial
-            ? "RestoreLayout — \(report.summary)"
-            : "RestoreLayout — layout restored"
+        let isPartial = report.target.isEmpty || report.skipped > 0 || report.failed > 0
+        let tooltip: String
+        if report.target.isEmpty {
+            // Nothing was applied: name the reason rather than zero counts.
+            tooltip = report.reasons.first ?? report.summary
+        } else if isPartial {
+            tooltip = report.summary
+        } else {
+            tooltip = "\(report.target) restored"
+        }
+        statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon(preserveTooltip: isPartial)
         }
@@ -84,23 +103,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         do {
-            let (layout, _) = try CaptureEngine.captureAndSave(store: store)
+            let (layout, slot) = try CaptureEngine.captureAndSave(store: store)
             showIcon(
                 symbol: "checkmark.rectangle",
                 description: "Layout saved"
             )
             statusItem.button?.toolTip =
-                "RestoreLayout — saved \(layout.windows.count) windows"
+                "RestoreLayout — saved \(layout.windows.count) windows " +
+                "(\(slot.feedbackDescription))"
         } catch {
-            showIcon(
-                symbol: "exclamationmark.triangle",
-                description: "Could not save layout"
+            showFailure(
+                description: "Could not save layout",
+                tooltip: "save failed: \(error.localizedDescription)"
             )
-            statusItem.button?.toolTip =
-                "RestoreLayout — save failed: \(error.localizedDescription)"
+            return
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon()
+        }
+    }
+
+    @objc private func setShortcutTarget(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let target = ShortcutTarget(rawValue: raw) else { return }
+        do {
+            let builtIn = DisplayConfiguration.current().builtIn?.info
+            var library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
+            library.shortcutTarget = target
+            try store.save(library)
+        } catch {
+            showFailure(
+                description: "Could not change shortcut target",
+                tooltip: "shortcut change failed: \(error.localizedDescription)"
+            )
         }
     }
 
@@ -114,56 +149,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Menu
 
+    /// Everything the menu shows, derived from one display read and one
+    /// library load. `library` is nil when `layouts.json` is unreadable.
+    private struct MenuState {
+        var trusted: Bool
+        var configuration: DisplayConfiguration
+        var library: LayoutLibrary?
+
+        var multiDisplayLayout: Layout? {
+            guard let library else { return nil }
+            if case .multiDisplay(_, let layout) = RestoreEngine.select(
+                target: .multiDisplay,
+                library: library,
+                configuration: configuration
+            ) {
+                return layout
+            }
+            return nil
+        }
+
+        var canRestoreLaptop: Bool { trusted && library?.laptop != nil }
+        var canRestoreMultiDisplay: Bool { trusted && multiDisplayLayout != nil }
+
+        /// Which restore item carries the ⌃⌥⌘R badge.
+        var shortcutRestoresMultiDisplay: Bool {
+            switch library?.shortcutTarget ?? .connectedDisplays {
+            case .laptop: return false
+            case .multiDisplay: return true
+            case .connectedDisplays: return multiDisplayLayout != nil
+            }
+        }
+    }
+
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
-        let trusted = AXPermission.isTrusted
+        let configuration = DisplayConfiguration.current()
+        let state = MenuState(
+            trusted: AXPermission.isTrusted,
+            configuration: configuration,
+            library: try? store.load(builtIn: configuration.builtIn?.info)
+                ?? LayoutLibrary()
+        )
 
-        if !trusted {
-            let grant = NSMenuItem(
-                title: "Grant Accessibility Access…",
-                action: #selector(grantAccessibility),
-                keyEquivalent: ""
-            )
-            grant.target = self
-            menu.addItem(grant)
+        if !state.trusted {
+            menu.addItem(actionItem(
+                "Grant Accessibility Access…",
+                #selector(grantAccessibility)
+            ))
             menu.addItem(.separator())
         }
 
-        let restore = NSMenuItem(
-            title: "Restore Layout",
-            action: #selector(restoreLayout),
-            keyEquivalent: "r"
-        )
-        restore.target = self
-        restore.keyEquivalentModifierMask = [.control, .option, .command]
-        restore.isEnabled = trusted
-        menu.addItem(restore)
-
-        let save = NSMenuItem(
-            title: "Save Current Layout",
-            action: #selector(saveLayout),
-            keyEquivalent: "s"
-        )
-        save.target = self
-        save.keyEquivalentModifierMask = [.control, .option, .command]
-        save.isEnabled = trusted
-        menu.addItem(save)
-
+        addActionItems(to: menu, state: state)
         menu.addItem(.separator())
-        let savedInfo = NSMenuItem(
-            title: savedAtDescription(),
-            action: nil,
-            keyEquivalent: ""
-        )
-        savedInfo.isEnabled = false
-        menu.addItem(savedInfo)
+        menu.addItem(shortcutTargetItem(state: state))
+        menu.addItem(.separator())
+        for line in statusLines(state: state) {
+            let info = NSMenuItem(title: line, action: nil, keyEquivalent: "")
+            info.isEnabled = false
+            menu.addItem(info)
+        }
 
-        let login = NSMenuItem(
-            title: "Launch at Login",
-            action: #selector(toggleLogin),
-            keyEquivalent: ""
-        )
-        login.target = self
+        let login = actionItem("Launch at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off
         menu.addItem(login)
 
@@ -175,19 +221,76 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ))
     }
 
-    private func savedAtDescription() -> String {
-        do {
-            let builtIn = DisplayConfiguration.current().builtIn?.info
-            guard let layout = try store.load(builtIn: builtIn)?.laptop else {
-                return "No layout saved"
-            }
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
-            return "Saved: \(formatter.string(from: layout.savedAt))"
-        } catch {
-            return "Saved layout unreadable"
+    private func addActionItems(to menu: NSMenu, state: MenuState) {
+        let laptop = actionItem("Restore Laptop Layout", #selector(restoreLaptop))
+        laptop.isEnabled = state.canRestoreLaptop
+        let multi = actionItem(
+            "Restore Multi-Display Layout",
+            #selector(restoreMultiDisplay)
+        )
+        multi.isEnabled = state.canRestoreMultiDisplay
+        setHotKeyBadge(on: state.shortcutRestoresMultiDisplay ? multi : laptop, key: "r")
+
+        let save = actionItem("Save Current Layout", #selector(saveLayout))
+        setHotKeyBadge(on: save, key: "s")
+        save.isEnabled = state.trusted
+
+        [laptop, multi, save].forEach(menu.addItem)
+    }
+
+    private func shortcutTargetItem(state: MenuState) -> NSMenuItem {
+        let current = state.library?.shortcutTarget ?? .connectedDisplays
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for target in [ShortcutTarget.connectedDisplays, .laptop, .multiDisplay] {
+            let item = actionItem(target.menuTitle, #selector(setShortcutTarget(_:)))
+            item.representedObject = target.rawValue
+            item.state = target == current ? .on : .off
+            submenu.addItem(item)
         }
+        let parent = NSMenuItem(title: "Shortcut Restores", action: nil, keyEquivalent: "")
+        parent.submenu = submenu
+        return parent
+    }
+
+    private func statusLines(state: MenuState) -> [String] {
+        guard let library = state.library else {
+            return ["Layout file unreadable"]
+        }
+        let laptopLine = library.laptop.map {
+            "Laptop layout: saved \(formattedDate($0.savedAt))"
+        } ?? "Laptop layout: not saved"
+
+        let count = state.configuration.externalCount
+        let connectedLine: String
+        if state.configuration.isLaptopOnly {
+            connectedLine = "Connected displays: none external"
+        } else {
+            let prefix = "Connected displays (\(count) external)"
+            connectedLine = state.multiDisplayLayout.map {
+                "\(prefix): saved \(formattedDate($0.savedAt))"
+            } ?? "\(prefix): not saved"
+        }
+        return [laptopLine, connectedLine]
+    }
+
+    private func actionItem(_ title: String, _ action: Selector) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+        item.target = self
+        return item
+    }
+
+    /// Display-only: the Carbon hotkey does the real work.
+    private func setHotKeyBadge(on item: NSMenuItem, key: String) {
+        item.keyEquivalent = key
+        item.keyEquivalentModifierMask = [.control, .option, .command]
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     // MARK: - Permission onboarding
@@ -231,6 +334,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    /// Warning icon plus tooltip, held until the next feedback or base reset.
+    private func showFailure(description: String, tooltip: String) {
+        showIcon(symbol: "exclamationmark.triangle", description: description)
+        statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            self?.showBaseIcon()
+        }
+    }
+
     private func showIcon(symbol: String, description: String) {
         let image = NSImage(
             systemSymbolName: symbol,
@@ -241,3 +353,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 }
 
+// MARK: - Display strings
+
+private extension ShortcutTarget {
+    var menuTitle: String {
+        switch self {
+        case .connectedDisplays: return "Layout for Connected Displays"
+        case .laptop: return "Laptop Layout"
+        case .multiDisplay: return "Multi-Display Layout"
+        }
+    }
+}
+
+private extension SaveSlot {
+    var feedbackDescription: String {
+        switch self {
+        case .laptop:
+            return "laptop"
+        case .multiDisplay(let count):
+            return count == 1 ? "1 external display" : "\(count) external displays"
+        }
+    }
+}
