@@ -1,7 +1,8 @@
 # RestoreLayout
 
 macOS menu bar utility and CLI for snapshotting visible window frames and
-restoring them relative to the built-in display.
+restoring them. Keeps a laptop layout plus one multi-display layout per set of
+connected displays.
 
 ## Stack
 
@@ -24,9 +25,11 @@ restoring them relative to the built-in display.
 - `Coordinates.swift` — all AX/AppKit/stored coordinate conversion
 - `Displays.swift` — live display set, fingerprint, anchor/resolve/match logic
 - `Models.swift` — Codable layout library data and v1 migration
-- `LayoutStore.swift` — atomic JSON persistence (`layouts.json`, reads v1 `layout.json`)
-- `CaptureEngine.swift` — list and save paths
-- `RestoreEngine.swift` — pure matching and verified frame application
+- `LayoutStore.swift` — atomic JSON persistence of `layouts.json`; migrates v1
+  `layout.json` into the laptop slot on load
+- `CaptureEngine.swift` — list and save paths, save routing by display set
+- `RestoreEngine.swift` — target selection, per-display resolution, verified
+  frame application
 
 ## Build and verify
 
@@ -55,11 +58,15 @@ identity and Accessibility approval.
 - Stored frames are offsets from the anchor display's top-left, in points,
   with y increasing downward. Each `WindowRecord.displayUUID` names its
   anchor. Do not scale on a resolution mismatch.
-- `DisplayConfiguration.current()` is the only place that reads NSScreen for
-  display identity.
+- Display identity is the UUID, with fallback to vendor + model + size, then
+  to the built-in display.
+- `DisplayConfiguration.current()` is the only place that reads `NSScreen`
+  for display identity.
+- Never overwrite an unreadable `layouts.json`: a load error aborts the save.
 - Skips and failures are per-window. Never abort the rest of a restore.
-- V1 is hotkey/manual only: no display notifications, debounce, polling,
-  named layouts, app launching, Space manipulation, or settings UI.
+- Hotkey/manual only: no display notifications, debounce, polling, named
+  layouts, app launching, Space manipulation, or settings UI beyond the
+  Shortcut Restores submenu.
 - Do not enable App Sandbox; public AX window control is incompatible with it.
 - Keep the stable `restore-layout-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.

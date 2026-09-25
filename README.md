@@ -14,7 +14,9 @@ forgets it. Unplug an external monitor and every window lands somewhere
 random, then you rebuild the arrangement by hand. RestoreLayout snapshots the
 arrangement once and puts it back on demand.
 
-It stores exactly one layout. Saving again overwrites it.
+It keeps a laptop layout plus one multi-display layout for each set of
+displays you dock to. Saving again overwrites the slot for the displays
+connected right now.
 
 ## Install
 
@@ -39,32 +41,55 @@ CLI use, the terminal running the binary needs its own Accessibility grant.
 ## Use
 
 - Arrange your windows, then press `⌃⌥⌘S` or choose **Save Current Layout**.
-- Press `⌃⌥⌘R` or choose **Restore Layout** to put everything back.
-- Click the menu bar icon for the menu, the shortcut hints, and the
+  With only the laptop screen connected this saves the laptop layout;
+  otherwise it saves the multi-display layout for the connected displays.
+- Choose **Restore Laptop Layout** or **Restore Multi-Display Layout** to put
+  everything back. The multi-display item is enabled only when external
+  displays are connected and a layout exists for that set.
+- Press `⌃⌥⌘R` to restore whatever the **Shortcut Restores** submenu says:
+  **Layout for Connected Displays** (the default), **Laptop Layout**, or
+  **Multi-Display Layout**. The default picks the multi-display layout for
+  the connected displays if one exists, otherwise the laptop layout.
+- Click the menu bar icon for the menu, when each layout was saved, and the
   **Launch at Login** toggle.
 
-Restore also works while docked: frames are stored relative to the built-in
-display, so you can gather everything onto the laptop screen first and then
-pull the cable.
+Restoring the laptop layout also works while docked: it gathers every window
+onto the laptop screen, so you can pull the cable afterwards.
 
 ## CLI
 
 The same binary runs headless:
 
 ```sh
-RestoreLayout --save        # snapshot the current windows
-RestoreLayout --restore     # apply the saved layout
-RestoreLayout --list        # print visible windows and frames
+RestoreLayout --save              # save to the slot for the connected displays
+RestoreLayout --restore           # restore what the shortcut would
+RestoreLayout --restore laptop    # restore the laptop layout
+RestoreLayout --restore multi     # restore the layout for the connected displays
+RestoreLayout --list              # print displays, then windows and frames
 ```
 
-The layout is plain JSON at
-`~/Library/Application Support/RestoreLayout/layout.json`.
+`--save` prints which slot it wrote. `--list` shows each connected display
+with its UUID, then each window with its anchor display and its frame
+relative to that display.
+
+Layouts and the shortcut setting are plain JSON at
+`~/Library/Application Support/RestoreLayout/layouts.json`. A v1
+`layout.json` in the same folder is migrated into the laptop slot on first
+load and left in place.
 
 ## How it works
 
 Save reads the Accessibility window list of every regular app and records each
-visible, standard, non-minimized window's frame as an offset from the built-in
-display's top-left corner.
+visible, standard, non-minimized window's frame as an offset from the top-left
+corner of its anchor display: the display the window overlaps most. A laptop
+layout is one where every window anchors to the built-in display.
+
+Displays are identified by the UUID macOS assigns them. At restore each saved
+display is matched to a live one by UUID first, then by vendor, model, and
+size in points (a monitor with a junk serial can change UUID when it moves
+ports), and finally falls back to the built-in display. Windows whose display
+can't be resolved at all are skipped. Frames are applied as saved; if a
+display's size changed, restore reports a warning rather than scaling.
 
 Restore pairs saved and live windows by app and window order, never by title
 (browser tab titles change constantly). It applies each frame as
@@ -88,7 +113,8 @@ swift build && swift test   # unit tests cover coordinates, matching, persistenc
 ## Roadmap
 
 v2: an opt-in trigger that restores automatically when the display
-configuration becomes laptop-only. v1 does no display watching at all.
+configuration changes. It would call the same resolver as **Layout for
+Connected Displays**. Today the app does no display watching at all.
 
 ## License
 
