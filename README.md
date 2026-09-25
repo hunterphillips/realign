@@ -53,8 +53,9 @@ CLI use, the terminal running the binary needs its own Accessibility grant.
 - Click the menu bar icon for the menu, when each layout was saved, and the
   **Launch at Login** toggle.
 
-Restoring the laptop layout also works while docked: it gathers every window
-onto the laptop screen, so you can pull the cable afterwards.
+Restoring the laptop layout also works while docked, as long as the lid is
+open (clamshell mode has no built-in display to place windows on): it gathers
+every window onto the laptop screen, so you can pull the cable afterwards.
 
 ## CLI
 
@@ -105,14 +106,15 @@ opened after the save. A skip never aborts the rest of the restore.
 ## Development
 
 ```sh
-swift build && swift test   # unit tests cover coordinates, matching, persistence
+swift build && swift test   # unit tests cover coordinates, matching, persistence,
+                             # display resolution, and target selection
 ./build-app.sh              # assemble and sign the bundle in place
 ./test-restore.sh           # optional smoke test; needs Accessibility access
 ```
 
 ## Roadmap
 
-v2: an opt-in trigger that restores automatically when the display
+Planned: an opt-in trigger that restores automatically when the display
 configuration changes. It would call the same resolver as **Layout for
 Connected Displays**. Today the app does no display watching at all.
 

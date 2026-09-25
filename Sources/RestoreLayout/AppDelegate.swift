@@ -188,8 +188,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let state = MenuState(
             trusted: AXPermission.isTrusted,
             configuration: configuration,
-            library: try? store.load(builtIn: configuration.builtIn?.info)
-                ?? LayoutLibrary()
+            library: try? (
+                store.load(builtIn: configuration.builtIn?.info) ?? LayoutLibrary()
+            )
         )
 
         if !state.trusted {
@@ -287,11 +288,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.keyEquivalentModifierMask = [.control, .option, .command]
     }
 
-    private func formattedDate(_ date: Date) -> String {
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private func formattedDate(_ date: Date) -> String {
+        Self.dateFormatter.string(from: date)
     }
 
     // MARK: - Permission onboarding
@@ -335,12 +340,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Warning icon plus tooltip, held until the next feedback or base reset.
+    /// Warning icon now; the icon resets to base after 0.8s but the tooltip
+    /// stays until the next feedback change.
     private func showFailure(description: String, tooltip: String) {
         showIcon(symbol: "exclamationmark.triangle", description: description)
         statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
-            self?.showBaseIcon()
+            self?.showBaseIcon(preserveTooltip: true)
         }
     }
 
