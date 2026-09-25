@@ -56,6 +56,11 @@ enum RestoreTarget: Equatable, Sendable {
     case multiDisplay
     /// Multi-display layout for the connected displays, else laptop.
     case connectedDisplays
+    /// Automatic restore after the display set changes: the laptop layout when
+    /// only the built-in is connected, else the multi-display layout for the
+    /// connected displays. Never falls through to the laptop layout while
+    /// docked, so docking to an unsaved set does nothing.
+    case displayChange
 }
 
 extension RestoreTarget {
@@ -95,7 +100,7 @@ enum RestoreEngine {
         ), let layout = library.multiDisplay[key] {
             return .multiDisplay(key: key, layout: layout)
         }
-        return target == .multiDisplay ? .noMatchingLayout : laptop
+        return target == .connectedDisplays ? laptop : .noMatchingLayout
     }
 
     /// The target the global shortcut and bare `--restore` use.

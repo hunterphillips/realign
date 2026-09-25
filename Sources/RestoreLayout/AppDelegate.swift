@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var restoreHotKey: GlobalHotKey?
     private var saveHotKey: GlobalHotKey?
     private var permissionTimer: Timer?
+    private var displayWatcher: DisplayChangeWatcher?
     private let store = LayoutStore()
 
     private let restoreHotKeyDisplay = "⌃⌥⌘R"
@@ -16,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         configureStatusItem()
         configureHotKeys()
+        configureDisplayWatcher()
         if AXPermission.isTrusted {
             showBaseIcon()
         } else {
@@ -25,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         permissionTimer?.invalidate()
+        displayWatcher?.stop()
     }
 
     private func configureStatusItem() {
@@ -54,6 +57,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ) { [weak self] in
             Task { @MainActor in self?.saveLayout() }
         }
+    }
+
+    private func configureDisplayWatcher() {
+        let watcher = DisplayChangeWatcher(
+            isEnabled: { [weak self] in self?.loadLibrary()?.autoRestore ?? false },
+            onChange: { [weak self] in
+                // Never prompt from a background trigger.
+                guard AXPermission.isTrusted else { return }
+                self?.restore(target: .displayChange)
+            }
+        )
+        watcher.start()
+        displayWatcher = watcher
+    }
+
+    /// The saved library, a fresh one when none exists, or nil when
+    /// `layouts.json` is unreadable.
+    private func loadLibrary(
+        configuration: DisplayConfiguration = .current()
+    ) -> LayoutLibrary? {
+        try? store.load(builtIn: configuration.builtIn?.info) ?? LayoutLibrary()
     }
 
     // MARK: - Actions
@@ -89,7 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else if isPartial {
             tooltip = report.summary
         } else {
-            tooltip = report.target.map { "\($0) restored" } ?? report.summary
+            let how = target == .displayChange ? " automatically" : ""
+            tooltip = report.target.map { "\($0) restored\(how)" } ?? report.summary
         }
         statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
@@ -140,6 +165,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    @objc private func toggleAutoRestore() {
+        do {
+            let builtIn = DisplayConfiguration.current().builtIn?.info
+            var library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
+            library.autoRestore.toggle()
+            try store.save(library)
+        } catch {
+            showFailure(
+                description: "Could not change auto-restore",
+                tooltip: "auto-restore change failed: \(error.localizedDescription)"
+            )
+        }
+    }
+
     @objc private func toggleLogin() {
         LoginItem.setEnabled(!LoginItem.isEnabled)
     }
@@ -173,6 +212,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             trusted && library?.laptop != nil && configuration.builtIn != nil
         }
         var canRestoreMultiDisplay: Bool { trusted && multiDisplayLayout != nil }
+        var autoRestore: Bool { library?.autoRestore ?? false }
 
         /// Which restore item carries the ⌃⌥⌘R badge.
         var shortcutRestoresMultiDisplay: Bool {
@@ -190,9 +230,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let state = MenuState(
             trusted: AXPermission.isTrusted,
             configuration: configuration,
-            library: try? (
-                store.load(builtIn: configuration.builtIn?.info) ?? LayoutLibrary()
-            )
+            library: loadLibrary(configuration: configuration)
         )
 
         if !state.trusted {
@@ -212,6 +250,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             info.isEnabled = false
             menu.addItem(info)
         }
+
+        let autoRestore = actionItem(
+            "Auto-Restore on Display Change",
+            #selector(toggleAutoRestore)
+        )
+        autoRestore.state = state.autoRestore ? .on : .off
+        autoRestore.isEnabled = state.library != nil
+        menu.addItem(autoRestore)
 
         let login = actionItem("Launch at Login", #selector(toggleLogin))
         login.state = LoginItem.isEnabled ? .on : .off

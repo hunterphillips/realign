@@ -50,6 +50,11 @@ CLI use, the terminal running the binary needs its own Accessibility grant.
   **Auto-detect** (the default), **Laptop Layout**, or **Multi-Display
   Layout**. Auto-detect picks the multi-display layout for the connected
   displays if one exists, otherwise the laptop layout.
+- Turn on **Auto-Restore on Display Change** to restore without the shortcut.
+  It's off by default. When on, unplugging applies the laptop layout and
+  plugging in applies the multi-display layout for that set of displays, a
+  couple of seconds after macOS finishes rearranging windows. Docking to a set
+  with no saved layout does nothing.
 - Click the menu bar icon for the menu, when each layout was saved, and the
   **Launch at Login** toggle.
 
@@ -111,12 +116,6 @@ swift build && swift test   # unit tests cover coordinates, matching, persistenc
 ./build-app.sh              # assemble and sign the bundle in place
 ./test-restore.sh           # optional smoke test; needs Accessibility access
 ```
-
-## Roadmap
-
-Planned: an opt-in trigger that restores automatically when the display
-configuration changes. It would call the same resolver as **Auto-detect**.
-Today the app does no display watching at all.
 
 ## License
 

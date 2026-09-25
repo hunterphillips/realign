@@ -30,6 +30,7 @@ connected displays.
 - `CaptureEngine.swift` — list and save paths, save routing by display set
 - `RestoreEngine.swift` — target selection, per-display resolution, verified
   frame application
+- `DisplayChangeWatcher.swift` — debounced display-set watcher
 
 ## Build and verify
 
@@ -70,9 +71,11 @@ identity and Accessibility approval.
   multi-display layout), the restore is not applied: one reason line,
   `applied == false`, CLI exit 1.
 - Skips and failures are per-window. Never abort the rest of a restore.
-- Hotkey/manual only: no display notifications, debounce, polling, named
-  layouts, app launching, Space manipulation, or settings UI beyond the
-  Restore Shortcut submenu.
+- Display watching uses only `NSApplication.didChangeScreenParametersNotification`,
+  debounced 1.5 s, and acts only when the display fingerprint changed. No
+  CoreGraphics reconfiguration callbacks, no polling.
+- No named layouts, app launching, Space manipulation, or settings UI beyond
+  the menu toggles.
 - Do not enable App Sandbox; public AX window control is incompatible with it.
 - Keep the stable `restore-layout-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.

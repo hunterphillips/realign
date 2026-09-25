@@ -97,6 +97,39 @@ struct RestoreSelectionTests {
         #expect(select(.connectedDisplays, LayoutLibrary(), laptopOnly) == .noLaptopLayout)
     }
 
+    // MARK: - Display change
+
+    @Test func displayChangeUsesLaptopLayoutWhenLaptopOnly() {
+        let library = LayoutLibrary(
+            laptop: laptopLayout,
+            multiDisplay: [docked.fingerprint: dockedLayout]
+        )
+        #expect(select(.displayChange, library, laptopOnly) == .laptop(laptopLayout))
+    }
+
+    @Test func displayChangeWithoutLaptopLayoutWhenLaptopOnly() {
+        let library = LayoutLibrary(multiDisplay: [docked.fingerprint: dockedLayout])
+        #expect(select(.displayChange, library, laptopOnly) == .noLaptopLayout)
+    }
+
+    @Test func displayChangeUsesMatchingMultiLayoutWhenDocked() {
+        let library = LayoutLibrary(
+            laptop: laptopLayout,
+            multiDisplay: [docked.fingerprint: dockedLayout]
+        )
+        #expect(
+            select(.displayChange, library, docked)
+                == .multiDisplay(key: docked.fingerprint, layout: dockedLayout)
+        )
+    }
+
+    @Test func displayChangeNeverFallsThroughToLaptopWhenDocked() {
+        let library = LayoutLibrary(laptop: laptopLayout)
+        let selection = select(.displayChange, library, docked)
+        #expect(selection == .noMatchingLayout)
+        #expect(selection != .laptop(laptopLayout))
+    }
+
     @Test func shortcutTargetMapsToRestoreTarget() {
         #expect(RestoreTarget(.connectedDisplays) == .connectedDisplays)
         #expect(RestoreTarget(.laptop) == .laptop)

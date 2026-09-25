@@ -242,6 +242,20 @@ struct MatchingTests {
         )
     }
 
+    @Test func autoRestoreRoundTrips() throws {
+        let (store, directory) = makeStore()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try store.save(LayoutLibrary(autoRestore: true))
+
+        #expect(try store.load(builtIn: Self.builtIn)?.autoRestore == true)
+    }
+
+    @Test func autoRestoreDefaultsToFalseWhenKeyIsMissing() throws {
+        let json = #"{"version": 2, "shortcutTarget": "laptop", "multiDisplay": {}}"#
+        let library = try JSONDecoder().decode(LayoutLibrary.self, from: Data(json.utf8))
+        #expect(library.autoRestore == false)
+    }
+
     @Test func loadReturnsNilWhenNoFileExists() throws {
         let (store, directory) = makeStore()
         defer { try? FileManager.default.removeItem(at: directory) }

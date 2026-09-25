@@ -46,6 +46,8 @@ struct LayoutLibrary: Codable, Equatable, Sendable {
     var laptop: Layout?
     /// Keyed by `DisplayConfiguration.fingerprint`.
     var multiDisplay: [String: Layout] = [:]
+    /// Restore automatically when the connected display set changes.
+    var autoRestore: Bool = false
 }
 
 /// Where a save landed in the library.
@@ -85,6 +87,7 @@ extension LayoutLibrary {
             [String: Layout].self,
             forKey: .multiDisplay
         ) ?? [:]
+        autoRestore = try container.decodeIfPresent(Bool.self, forKey: .autoRestore) ?? false
     }
 }
 
