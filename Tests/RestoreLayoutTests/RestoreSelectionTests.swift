@@ -125,9 +125,43 @@ struct RestoreSelectionTests {
 
     @Test func displayChangeNeverFallsThroughToLaptopWhenDocked() {
         let library = LayoutLibrary(laptop: laptopLayout)
-        let selection = select(.displayChange, library, docked)
-        #expect(selection == .noMatchingLayout)
-        #expect(selection != .laptop(laptopLayout))
+        #expect(select(.displayChange, library, docked) == .noMatchingLayout)
+    }
+
+    @Test func displayChangeUsesSignatureFallbackKeyWhenDocked() {
+        var renamedDell = DisplaysTests.dell.info
+        renamedDell.uuid = "11111111-1111-1111-1111-111111111111"
+        let saved = Self.layout(
+            [DisplaysTests.builtIn.info, DisplaysTests.portrait.info, renamedDell],
+            savedAt: 5
+        )
+        let savedKey = DisplayConfiguration.fingerprint(of: saved.displays)
+        #expect(savedKey != docked.fingerprint)
+        let library = LayoutLibrary(laptop: laptopLayout, multiDisplay: [savedKey: saved])
+        #expect(
+            select(.displayChange, library, docked)
+                == .multiDisplay(key: savedKey, layout: saved)
+        )
+    }
+
+    @Test func hasLayoutForDisplayChange() {
+        let full = LayoutLibrary(
+            laptop: laptopLayout,
+            multiDisplay: [docked.fingerprint: dockedLayout]
+        )
+        let laptopOnlyLibrary = LayoutLibrary(laptop: laptopLayout)
+        let multiOnlyLibrary = LayoutLibrary(multiDisplay: [docked.fingerprint: dockedLayout])
+
+        // Laptop only: needs a laptop layout.
+        #expect(hasLayout(.displayChange, full, laptopOnly))
+        #expect(!hasLayout(.displayChange, multiOnlyLibrary, laptopOnly))
+        #expect(!hasLayout(.displayChange, LayoutLibrary(), laptopOnly))
+
+        // Docked: needs a matching multi-display layout; laptop never counts.
+        #expect(hasLayout(.displayChange, full, docked))
+        #expect(hasLayout(.displayChange, multiOnlyLibrary, docked))
+        #expect(!hasLayout(.displayChange, laptopOnlyLibrary, docked))
+        #expect(!hasLayout(.displayChange, LayoutLibrary(), docked))
     }
 
     @Test func shortcutTargetMapsToRestoreTarget() {
@@ -286,6 +320,14 @@ struct RestoreSelectionTests {
         _ configuration: DisplayConfiguration
     ) -> RestoreSelection {
         RestoreEngine.select(target: target, library: library, configuration: configuration)
+    }
+
+    private func hasLayout(
+        _ target: RestoreTarget,
+        _ library: LayoutLibrary,
+        _ configuration: DisplayConfiguration
+    ) -> Bool {
+        RestoreEngine.hasLayout(for: target, library: library, configuration: configuration)
     }
 
     private static func layout(_ displays: [DisplayInfo], savedAt: TimeInterval) -> Layout {

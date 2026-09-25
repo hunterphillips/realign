@@ -74,6 +74,8 @@ identity and Accessibility approval.
 - Display watching uses only `NSApplication.didChangeScreenParametersNotification`,
   debounced 1.5 s, and acts only when the display fingerprint changed. No
   CoreGraphics reconfiguration callbacks, no polling.
+- Automatic restores never prompt for Accessibility and are silent when no
+  layout applies.
 - No named layouts, app launching, Space manipulation, or settings UI beyond
   the menu toggles.
 - Do not enable App Sandbox; public AX window control is incompatible with it.

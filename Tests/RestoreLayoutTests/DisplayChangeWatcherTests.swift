@@ -3,17 +3,28 @@ import Testing
 
 @Suite("Display change watcher")
 struct DisplayChangeWatcherTests {
-    @Test func disabledNeverRestores() {
-        #expect(!DisplayChangeWatcher.shouldRestore(enabled: false, previous: "A", current: "B"))
-        #expect(!DisplayChangeWatcher.shouldRestore(enabled: false, previous: "A", current: "A"))
-    }
+    typealias Decision = DisplayChangeWatcher.Decision
 
-    @Test func unchangedDisplaySetDoesNotRestore() {
-        #expect(!DisplayChangeWatcher.shouldRestore(enabled: true, previous: "A+B", current: "A+B"))
-    }
-
-    @Test func changedDisplaySetRestoresWhenEnabled() {
-        #expect(DisplayChangeWatcher.shouldRestore(enabled: true, previous: "A+B", current: "A"))
-        #expect(DisplayChangeWatcher.shouldRestore(enabled: true, previous: "A", current: "A+B"))
+    /// Truth table: (enabled, previous, current) -> decision.
+    @Test(arguments: [
+        // Empty current is transient: keep previous, whatever else holds.
+        (true, "A", "", Decision.ignore),
+        (false, "A", "", Decision.ignore),
+        (true, "", "", Decision.ignore),
+        // Unchanged set: record only.
+        (true, "A+B", "A+B", Decision.record),
+        (false, "A+B", "A+B", Decision.record),
+        // Changed while disabled: record only, so enabling later does not replay it.
+        (false, "A+B", "A", Decision.record),
+        (false, "A", "A+B", Decision.record),
+        // Changed while enabled: restore.
+        (true, "A+B", "A", Decision.restore),
+        (true, "A", "A+B", Decision.restore),
+    ])
+    func decide(enabled: Bool, previous: String, current: String, expected: Decision) {
+        #expect(
+            DisplayChangeWatcher.decide(enabled: enabled, previous: previous, current: current)
+                == expected
+        )
     }
 }

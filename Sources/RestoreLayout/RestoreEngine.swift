@@ -89,18 +89,42 @@ enum RestoreEngine {
         configuration: DisplayConfiguration
     ) -> RestoreSelection {
         let laptop: RestoreSelection = library.laptop.map { .laptop($0) } ?? .noLaptopLayout
-        guard target != .laptop else { return laptop }
-
-        guard !configuration.isLaptopOnly else {
-            return target == .multiDisplay ? .noExternalDisplays : laptop
-        }
-        if let key = DisplayConfiguration.matchingKey(
-            for: configuration,
-            in: library.multiDisplay
-        ), let layout = library.multiDisplay[key] {
+        func multi() -> RestoreSelection? {
+            guard let key = DisplayConfiguration.matchingKey(
+                for: configuration,
+                in: library.multiDisplay
+            ), let layout = library.multiDisplay[key] else { return nil }
             return .multiDisplay(key: key, layout: layout)
         }
-        return target == .connectedDisplays ? laptop : .noMatchingLayout
+
+        switch target {
+        case .laptop:
+            return laptop
+        case .multiDisplay:
+            guard !configuration.isLaptopOnly else { return .noExternalDisplays }
+            return multi() ?? .noMatchingLayout
+        case .connectedDisplays:
+            guard !configuration.isLaptopOnly else { return laptop }
+            return multi() ?? laptop
+        case .displayChange:
+            guard !configuration.isLaptopOnly else { return laptop }
+            return multi() ?? .noMatchingLayout
+        }
+    }
+
+    /// Whether `target` selects a layout at all. The automatic path uses this
+    /// to stay silent when nothing applies.
+    static func hasLayout(
+        for target: RestoreTarget,
+        library: LayoutLibrary,
+        configuration: DisplayConfiguration
+    ) -> Bool {
+        switch select(target: target, library: library, configuration: configuration) {
+        case .laptop, .multiDisplay:
+            return true
+        case .noLaptopLayout, .noExternalDisplays, .noMatchingLayout:
+            return false
+        }
     }
 
     /// The target the global shortcut and bare `--restore` use.

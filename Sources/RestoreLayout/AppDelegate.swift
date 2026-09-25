@@ -63,13 +63,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let watcher = DisplayChangeWatcher(
             isEnabled: { [weak self] in self?.loadLibrary()?.autoRestore ?? false },
             onChange: { [weak self] in
-                // Never prompt from a background trigger.
-                guard AXPermission.isTrusted else { return }
-                self?.restore(target: .displayChange)
+                self?.autoRestore()
             }
         )
         watcher.start()
         displayWatcher = watcher
+    }
+
+    /// Automatic restore after a display change. Never prompts for
+    /// Accessibility, and stays silent (no icon or tooltip change) when no
+    /// layout applies to the new display set. An unreadable `layouts.json`
+    /// still goes through `restore` so the failure is shown.
+    private func autoRestore() {
+        guard AXPermission.isTrusted else { return }
+        let configuration = DisplayConfiguration.current()
+        if let library = loadLibrary(configuration: configuration),
+           !RestoreEngine.hasLayout(
+               for: .displayChange,
+               library: library,
+               configuration: configuration
+           ) {
+            return
+        }
+        restore(target: .displayChange)
     }
 
     /// The saved library, a fresh one when none exists, or nil when
@@ -152,29 +168,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func setShortcutTarget(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let target = ShortcutTarget(rawValue: raw) else { return }
-        do {
-            let builtIn = DisplayConfiguration.current().builtIn?.info
-            var library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
-            library.shortcutTarget = target
-            try store.save(library)
-        } catch {
-            showFailure(
-                description: "Could not change shortcut target",
-                tooltip: "shortcut change failed: \(error.localizedDescription)"
-            )
+        updateLibrary(failureDescription: "shortcut change") {
+            $0.shortcutTarget = target
         }
     }
 
     @objc private func toggleAutoRestore() {
+        updateLibrary(failureDescription: "auto-restore change") {
+            $0.autoRestore.toggle()
+        }
+    }
+
+    /// Load, mutate, save. A load error aborts without saving, so an
+    /// unreadable `layouts.json` is never overwritten.
+    private func updateLibrary(
+        failureDescription: String,
+        _ mutate: (inout LayoutLibrary) -> Void
+    ) {
+        let builtIn = DisplayConfiguration.current().builtIn?.info
+        var library: LayoutLibrary
         do {
-            let builtIn = DisplayConfiguration.current().builtIn?.info
-            var library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
-            library.autoRestore.toggle()
+            library = try store.load(builtIn: builtIn) ?? LayoutLibrary()
+        } catch {
+            showFailure(
+                description: "Could not load layouts",
+                tooltip: "\(failureDescription) failed: \(error.localizedDescription)"
+            )
+            return
+        }
+        mutate(&library)
+        do {
             try store.save(library)
         } catch {
             showFailure(
-                description: "Could not change auto-restore",
-                tooltip: "auto-restore change failed: \(error.localizedDescription)"
+                description: "Could not save layouts",
+                tooltip: "\(failureDescription) failed: \(error.localizedDescription)"
             )
         }
     }

@@ -54,6 +54,7 @@ The menu has a few more things in it:
   monitors and the laptop layout comes back a couple of seconds later. Plug
   them in and the monitor layout comes back. It's off by default. If you dock
   somewhere you haven't saved a layout for, it leaves your windows alone.
+  Same when you unplug without a saved laptop layout.
 - **Launch at Login** does what it says.
 
 Saving again replaces the layout for the monitors connected at that moment.

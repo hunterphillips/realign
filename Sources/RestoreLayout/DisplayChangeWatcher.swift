@@ -12,11 +12,26 @@ final class DisplayChangeWatcher: NSObject {
     private var previous = ""
     private var settleTimer: Timer?
     private var isObserving = false
-    private var isHandlingChange = false
 
-    /// Pure decision: restore only when enabled and the display set really changed.
-    nonisolated static func shouldRestore(enabled: Bool, previous: String, current: String) -> Bool {
-        enabled && previous != current
+    /// What to do once the display set has settled.
+    enum Decision: Equatable, Sendable {
+        /// Leave `previous` as is and do nothing.
+        case ignore
+        /// Record `current` as the new `previous`; no restore.
+        case record
+        /// Record `current` and restore.
+        case restore
+    }
+
+    /// Pure decision for a settled display set.
+    /// - An empty `current` (no displays at all) is transient, e.g. display
+    ///   sleep; keep the last real set so waking does not count as a change.
+    /// - An unchanged set, or a change while disabled, is only recorded, so
+    ///   enabling later does not replay an old change.
+    nonisolated static func decide(enabled: Bool, previous: String, current: String) -> Decision {
+        guard !current.isEmpty else { return .ignore }
+        guard enabled && previous != current else { return .record }
+        return .restore
     }
 
     init(
@@ -55,8 +70,6 @@ final class DisplayChangeWatcher: NSObject {
     }
 
     @objc private func screenParametersChanged(_ notification: Notification) {
-        // Restoring moves windows; ignore anything that arrives meanwhile.
-        guard !isHandlingChange else { return }
         settleTimer?.invalidate()
         let timer = Timer(timeInterval: settleDelay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.settle() }
@@ -69,20 +82,17 @@ final class DisplayChangeWatcher: NSObject {
     private func settle() {
         settleTimer = nil
         let current = DisplayConfiguration.current().fingerprint
-        // No displays at all is a transient state (e.g. display sleep); keep
-        // the last real set so waking does not count as a change.
-        guard !current.isEmpty else { return }
-        let restore = Self.shouldRestore(
-            enabled: isEnabled(),
-            previous: previous,
-            current: current
-        )
-        // Record the new set even when disabled, so enabling later does not
-        // replay an old change.
-        previous = current
-        guard restore else { return }
-        isHandlingChange = true
-        defer { isHandlingChange = false }
-        onChange()
+        switch Self.decide(enabled: isEnabled(), previous: previous, current: current) {
+        case .ignore:
+            return
+        case .record:
+            previous = current
+        case .restore:
+            previous = current
+            // `onChange` restores synchronously, so notifications posted
+            // while windows move are delivered after it returns and simply
+            // start a new settle timer, which then sees an unchanged set.
+            onChange()
+        }
     }
 }
