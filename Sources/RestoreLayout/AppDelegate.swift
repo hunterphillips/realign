@@ -252,7 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.state = target == current ? .on : .off
             submenu.addItem(item)
         }
-        let parent = NSMenuItem(title: "Shortcut Restores", action: nil, keyEquivalent: "")
+        let parent = NSMenuItem(title: "Restore Shortcut", action: nil, keyEquivalent: "")
         parent.submenu = submenu
         return parent
     }
@@ -367,7 +367,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 private extension ShortcutTarget {
     var menuTitle: String {
         switch self {
-        case .connectedDisplays: return "Layout for Connected Displays"
+        case .connectedDisplays: return "Auto-detect"
         case .laptop: return "Laptop Layout"
         case .multiDisplay: return "Multi-Display Layout"
         }

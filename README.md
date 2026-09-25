@@ -46,10 +46,10 @@ CLI use, the terminal running the binary needs its own Accessibility grant.
 - Choose **Restore Laptop Layout** or **Restore Multi-Display Layout** to put
   everything back. The multi-display item is enabled only when external
   displays are connected and a layout exists for that set.
-- Press `⌃⌥⌘R` to restore whatever the **Shortcut Restores** submenu says:
-  **Layout for Connected Displays** (the default), **Laptop Layout**, or
-  **Multi-Display Layout**. The default picks the multi-display layout for
-  the connected displays if one exists, otherwise the laptop layout.
+- Press `⌃⌥⌘R` to restore whatever the **Restore Shortcut** submenu says:
+  **Auto-detect** (the default), **Laptop Layout**, or **Multi-Display
+  Layout**. Auto-detect picks the multi-display layout for the connected
+  displays if one exists, otherwise the laptop layout.
 - Click the menu bar icon for the menu, when each layout was saved, and the
   **Launch at Login** toggle.
 

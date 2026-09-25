@@ -72,7 +72,7 @@ identity and Accessibility approval.
 - Skips and failures are per-window. Never abort the rest of a restore.
 - Hotkey/manual only: no display notifications, debounce, polling, named
   layouts, app launching, Space manipulation, or settings UI beyond the
-  Shortcut Restores submenu.
+  Restore Shortcut submenu.
 - Do not enable App Sandbox; public AX window control is incompatible with it.
 - Keep the stable `restore-layout-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.
