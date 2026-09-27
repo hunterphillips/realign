@@ -49,6 +49,13 @@ Use `./build-app.sh install` for the installed daily-driver copy. Run
 `./make-dev-cert.sh` once so development builds retain a stable signing
 identity and Accessibility approval.
 
+`./build-app.sh release` signs with the keychain's Developer ID Application
+identity (`--timestamp`, hardened runtime), notarizes through the
+`realign-notary` notarytool keychain profile, staples, and writes
+`dist/Realign-<CFBundleShortVersionString>.zip` plus its SHA-256. Bump
+`CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist` before
+tagging a release.
+
 ## Invariants
 
 - Apply every frame in the order **size → position → size**.

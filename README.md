@@ -13,8 +13,15 @@ It lives in the menu bar, is free, and is open source (MIT).
 
 ## Install
 
-Requires macOS 14 or later and the Xcode Command Line Tools. Right now you
-build it from source, which takes about a minute:
+Requires macOS 14 or later.
+
+Download `Realign-1.0.zip` from the [latest
+release](https://github.com/hunterphillips/realign/releases/latest), unzip
+it, and drag Realign to your Applications folder. It is signed and notarized,
+so macOS opens it without any extra steps.
+
+To build it from source instead, you need the Xcode Command Line Tools. It
+takes about a minute:
 
 ```sh
 git clone https://github.com/hunterphillips/realign.git
@@ -118,8 +125,13 @@ where it is.
 swift build && swift test   # unit tests cover coordinates, matching, persistence,
                              # display resolution, and target selection
 ./build-app.sh              # assemble and sign the bundle in place
+./build-app.sh release      # Developer ID sign, notarize, staple, zip to dist/
 ./test-restore.sh           # optional smoke test; needs Accessibility access
 ```
+
+Release mode needs a Developer ID Application certificate in the keychain
+and notarization credentials stored once with
+`xcrun notarytool store-credentials realign-notary`.
 
 ## License
 
