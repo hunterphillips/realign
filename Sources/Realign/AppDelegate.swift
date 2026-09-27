@@ -208,7 +208,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func toggleLogin() {
-        LoginItem.setEnabled(!LoginItem.isEnabled)
+        let enabling = !LoginItem.isEnabled
+        do {
+            try LoginItem.setEnabled(enabling)
+        } catch {
+            showFailure(
+                description: "Could not change Launch at Login",
+                tooltip: "Launch at Login failed: \(error.localizedDescription)"
+            )
+            return
+        }
+        if enabling && LoginItem.requiresApproval {
+            LoginItem.openSystemSettings()
+        }
     }
 
     @objc private func grantAccessibility() {

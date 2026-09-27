@@ -24,7 +24,11 @@ trap 'rm -rf "$CERT_DIR"' EXIT
 IMPORT_PASSWORD="realign-local-import"
 
 echo "→ Creating a ten-year self-signed code-signing certificate…"
-if ! openssl req -new -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes \
+# The system LibreSSL writes a PKCS#12 that Keychain imports as-is. A
+# Homebrew OpenSSL 3 on PATH would need -legacy for the same result.
+OPENSSL=/usr/bin/openssl
+
+if ! "$OPENSSL" req -new -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes \
     -subj "/CN=$SIGNING_NAME/O=Realign Development/" \
     -addext "keyUsage=critical,digitalSignature" \
     -addext "extendedKeyUsage=codeSigning" \
@@ -34,7 +38,7 @@ if ! openssl req -new -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes \
   exit 1
 fi
 
-openssl pkcs12 -export -legacy \
+"$OPENSSL" pkcs12 -export \
   -inkey "$CERT_DIR/private-key.pem" \
   -in "$CERT_DIR/certificate.pem" \
   -name "$SIGNING_NAME" \

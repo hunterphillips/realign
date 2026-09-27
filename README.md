@@ -21,7 +21,7 @@ With [Homebrew](https://brew.sh):
 brew install hunterphillips/tap/realign
 ```
 
-Or download `Realign-1.0.zip` from the [latest
+Or download `Realign-1.0.1.zip` from the [latest
 release](https://github.com/hunterphillips/realign/releases/latest), unzip
 it, and drag Realign to your Applications folder. Either way it is signed
 and notarized, so macOS opens it without any extra steps.
@@ -110,14 +110,15 @@ freeze Chrome for several seconds.
 ## Command line
 
 The same binary works from a terminal, which needs its own Accessibility
-permission:
+permission. It lives inside the app bundle, so give it a short name first:
 
 ```sh
-Realign --save              # save the layout for the connected displays
-Realign --restore           # restore what the shortcut would
-Realign --restore laptop    # restore the laptop layout
-Realign --restore multi     # restore the layout for the connected displays
-Realign --list              # show connected displays and every window
+alias realign=/Applications/Realign.app/Contents/MacOS/Realign
+realign --save              # save the layout for the connected displays
+realign --restore           # restore what the shortcut would
+realign --restore laptop    # restore the laptop layout
+realign --restore multi     # restore the layout for the connected displays
+realign --list              # show connected displays and every window
 ```
 
 Layouts and settings are a plain JSON file at

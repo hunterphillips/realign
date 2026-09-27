@@ -65,12 +65,8 @@ final class GlobalHotKey: @unchecked Sendable {
             0,
             &hotKeyRef
         )
-        guard registerStatus == noErr else {
-            if let eventHandler {
-                RemoveEventHandler(eventHandler)
-            }
-            return nil
-        }
+        // On failure, deinit still runs and removes the event handler.
+        guard registerStatus == noErr else { return nil }
     }
 
     deinit {

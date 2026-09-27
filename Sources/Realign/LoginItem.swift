@@ -6,20 +6,21 @@ enum LoginItem {
         SMAppService.mainApp.status == .enabled
     }
 
-    @discardableResult
-    static func setEnabled(_ enabled: Bool) -> Bool {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        } catch {
-            FileHandle.standardError.write(
-                Data("Realign login-item error: \(error)\n".utf8)
-            )
+    /// True after a register() that macOS is holding for the user to approve
+    /// in System Settings > General > Login Items.
+    static var requiresApproval: Bool {
+        SMAppService.mainApp.status == .requiresApproval
+    }
+
+    static func setEnabled(_ enabled: Bool) throws {
+        if enabled {
+            try SMAppService.mainApp.register()
+        } else {
+            try SMAppService.mainApp.unregister()
         }
-        return isEnabled
+    }
+
+    static func openSystemSettings() {
+        SMAppService.openSystemSettingsLoginItems()
     }
 }
-

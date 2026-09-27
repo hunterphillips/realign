@@ -34,7 +34,7 @@ end tell
 APPLESCRIPT
 
 sleep 0.2
-"$BINARY" --restore laptop
+"$BINARY" --restore
 "$BINARY" --list
 echo "Inspect the listed TextEdit/Calculator frames; restored values should be within 2pt."
 

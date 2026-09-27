@@ -57,6 +57,12 @@ fi
 
 echo "→ Building release binary…"
 SWIFT_BUILD_ARGUMENTS=(-c release)
+BINARY=".build/release/Realign"
+if [[ "$MODE" == "release" ]]; then
+  # Universal binary so Intel Macs on macOS 14+ can run the download.
+  SWIFT_BUILD_ARGUMENTS+=(--arch arm64 --arch x86_64)
+  BINARY=".build/apple/Products/Release/Realign"
+fi
 if [[ "${REALIGN_DISABLE_SWIFTPM_SANDBOX:-0}" == "1" ]]; then
   SWIFT_BUILD_ARGUMENTS+=(--disable-sandbox)
 fi
@@ -65,7 +71,7 @@ swift build "${SWIFT_BUILD_ARGUMENTS[@]}"
 echo "→ Assembling $APP…"
 rm -rf "$APP"
 mkdir -p "$CONTENTS/MacOS"
-cp ".build/release/Realign" "$CONTENTS/MacOS/Realign"
+cp "$BINARY" "$CONTENTS/MacOS/Realign"
 cp "Info.plist" "$CONTENTS/Info.plist"
 mkdir -p "$CONTENTS/Resources"
 cp assets/AppIcon.icns assets/MenuBarIcon.png assets/MenuBarIcon@2x.png "$CONTENTS/Resources/"
@@ -123,6 +129,7 @@ if [[ "$MODE" == "release" ]]; then
 
   echo "✓ Release artifact: $(pwd)/$ZIP"
   echo "  Version:  $VERSION"
+  echo "  Archs:    $(lipo -archs "$CONTENTS/MacOS/Realign")"
   echo "  SHA-256:  $(shasum -a 256 "$ZIP" | cut -d' ' -f1)"
 elif [[ "$MODE" == "install" ]]; then
   echo "→ Installing to $INSTALL_DIR and relaunching…"
