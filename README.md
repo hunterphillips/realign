@@ -4,141 +4,60 @@ Realign puts your Mac windows back where you had them.
 
 ![Before and after](assets/before-after.png)
 
-Arrange your windows once and save. When something scrambles them, press one
-shortcut and they snap back. It remembers two arrangements: one for the
-laptop on its own, and one for each set of monitors you plug into. It can
-also restore on its own when you plug in or unplug.
-
-It lives in the menu bar, is free, and is open source (MIT).
+Arrange and save your window layout. Quickly restore a saved layout with a keyboard shortcut or restore automatically when you plug in or unplug external monitors.
 
 ## Install
 
 Requires macOS 14 or later.
 
-With [Homebrew](https://brew.sh):
-
 ```sh
 brew install hunterphillips/tap/realign
 ```
 
-Or download `Realign-1.0.1.zip` from the [latest
-release](https://github.com/hunterphillips/realign/releases/latest), unzip
-it, and drag Realign to your Applications folder. Either way it is signed
-and notarized, so macOS opens it without any extra steps.
+Or download the zip from the [latest release](https://github.com/hunterphillips/realign/releases/latest) and drag Realign to your Applications folder.
 
-To build it from source instead, you need the Xcode Command Line Tools. It
-takes about a minute:
+Or build it yourself:
 
 ```sh
 git clone https://github.com/hunterphillips/realign.git
 cd realign
-./make-dev-cert.sh        # once: creates a local signing certificate
-./build-app.sh install    # builds the app, copies it to /Applications, opens it
+./build-app.sh install
 ```
 
-The first script makes a certificate so that rebuilding the app doesn't make
-macOS ask for permission again. Skip it and everything still works, but on
-macOS Tahoe you'll be asked after every rebuild.
-
-On first launch, macOS asks for Accessibility access. Turn it on in System
-Settings under Privacy & Security, then Accessibility. The app needs this to
-move other apps' windows.
+On first launch, grant Accessibility access in System Settings > Privacy & Security > Accessibility. Realign needs it to move other apps' windows.
 
 ## How to use
 
-1. Arrange your windows the way you like them.
-2. Press `⌃⌥⌘S`, or click the menu bar icon and choose **Save Current Layout**.
-3. Later, when your windows are a mess, press `⌃⌥⌘R`. They go back.
+1. Arrange your windows.
+2. Press `⌃⌥⌘S`, or choose **Save Current Layout** from the menu bar icon.
+3. Press `⌃⌥⌘R` to restore.
 
-Do step 1 and 2 once with the laptop on its own and once with your monitors
-plugged in. The app saves each as its own layout and knows which is which.
+Realign keeps one layout for the laptop on its own and one for each set of external monitors. Save once in each setup. Saving again overwrites the layout for the current setup.
 
-The menu has a few more things in it:
+Menu options:
 
-- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore one
-  specific layout, whatever is plugged in. Restoring the laptop layout while
-  monitors are attached gathers every window onto the laptop screen, which is
-  handy right before you unplug.
-- **Restore Shortcut** picks what `⌃⌥⌘R` does. **Auto-detect**, the default,
-  restores the layout for whatever monitors are connected, or the laptop
-  layout if you haven't saved one for them. The other two choices pin the
-  shortcut to one layout.
-- **Auto-Restore on Display Change** does the restore for you. Unplug your
-  monitors and the laptop layout comes back a couple of seconds later. Plug
-  them in and the monitor layout comes back. It's off by default. If you dock
-  somewhere you haven't saved a layout for, it leaves your windows alone.
-  Same when you unplug without a saved laptop layout.
-- **Launch at Login** does what it says.
-
-Saving again replaces the layout for the monitors connected at that moment.
+- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore a specific layout regardless of what is connected. Restoring the laptop layout while monitors are attached moves every window onto the laptop screen, useful before unplugging.
+- **Restore Shortcut** sets which layout `⌃⌥⌘R` restores. Auto-detect, the default, picks the layout for the connected monitors, or the laptop layout if none is saved for them.
+- **Auto-Restore on Display Change** restores the matching layout a few seconds after you plug in or unplug monitors. It is off by default. If no layout is saved for the new setup, nothing moves.
 
 ## Good to know
 
-- Restore only moves windows that were open when you saved, matched by app and
-  by order. If you saved with one browser window and now have two, only one
-  moves. Save again and both will.
-- Minimized windows, full-screen windows, and windows on other desktops stay
-  where they are. Apps that aren't running are skipped.
-- With the lid closed there's no laptop screen, so the laptop layout can't be
-  restored until you open it.
+- Restore moves only windows that existed when you saved, matched by app and order. If you saved with one browser window and now have two, only one moves.
+- Minimized windows, full-screen windows, and windows on other desktops stay where they are. Apps that aren't running are skipped.
+- The laptop layout can't be restored with the lid closed.
+- Layouts are stored in `~/Library/Application Support/Realign/layouts.json`.
 
 ## Why I built it
 
-On my laptop screen the layout is always the same: terminal and notes in a
-narrow column on the left, editor and browser filling the rest. macOS doesn't
-remember it. Unplug a monitor and every window lands somewhere random, and I'd
-rebuild the arrangement by hand several times a day. Now it's one key.
+On my laptop the layout is always the same: terminal and notes in a narrow column on the left, editor and browser filling the rest. macOS doesn't remember it. Every time I unplugged a monitor, every window landed somewhere random and I rebuilt the arrangement by hand, several times a day.
 
 ## How it works
 
-When you save, the app asks macOS for the position and size of every visible
-window and writes them down relative to the screen each window is on. When
-you restore, it finds each of those windows again and moves it back.
+When you save, Realign asks macOS for the position and size of every visible window and records them relative to the screen each window is on. When you restore, it finds each window again and moves it back.
 
-Two details make this reliable. Each window is resized, then moved, then
-resized again, because macOS otherwise squeezes a window to fit the screen it
-is currently on before it can move. And after every move the app reads the
-window's position back and retries briefly if it didn't land, instead of
-trusting that the move worked.
+Each window is resized, then moved, then resized again, because macOS otherwise shrinks a window to fit its current screen before it moves. After every move, Realign reads the position back and retries if the window didn't land.
 
-Monitors are recognized by the identifier macOS gives them, with a fallback on
-make, model, and size in case that identifier changes when a monitor is moved
-to a different port. Chrome and other Chromium apps get one accessibility
-setting switched off during the move, because with it on, a single resize can
-freeze Chrome for several seconds.
-
-## Command line
-
-The same binary works from a terminal, which needs its own Accessibility
-permission. It lives inside the app bundle, so give it a short name first:
-
-```sh
-alias realign=/Applications/Realign.app/Contents/MacOS/Realign
-realign --save              # save the layout for the connected displays
-realign --restore           # restore what the shortcut would
-realign --restore laptop    # restore the laptop layout
-realign --restore multi     # restore the layout for the connected displays
-realign --list              # show connected displays and every window
-```
-
-Layouts and settings are a plain JSON file at
-`~/Library/Application Support/Realign/layouts.json`. A `layout.json`
-from an older version is read into the laptop layout the first time and left
-where it is.
-
-## Development
-
-```sh
-swift build && swift test   # unit tests cover coordinates, matching, persistence,
-                             # display resolution, and target selection
-./build-app.sh              # assemble and sign the bundle in place
-./build-app.sh release      # Developer ID sign, notarize, staple, zip to dist/
-./test-restore.sh           # optional smoke test; needs Accessibility access
-```
-
-Release mode needs a Developer ID Application certificate in the keychain
-and notarization credentials stored once with
-`xcrun notarytool store-credentials realign-notary`.
+Monitors are identified by the ID macOS assigns them, with make, model, and size as a fallback in case the ID changes between ports. For Chrome and other Chromium apps, one accessibility setting is switched off during the move. With it on, a single resize can freeze Chrome for several seconds.
 
 ## License
 
