@@ -8,6 +8,8 @@
     <string>Realign</string>
     <key>CFBundleIdentifier</key>
     <string>com.hunterphillips.Realign</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleExecutable</key>
     <string>Realign</string>
     <key>CFBundlePackageType</key>

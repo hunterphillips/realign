@@ -29,6 +29,8 @@ rm -rf "$APP"
 mkdir -p "$CONTENTS/MacOS"
 cp ".build/release/Realign" "$CONTENTS/MacOS/Realign"
 cp "Info.plist" "$CONTENTS/Info.plist"
+mkdir -p "$CONTENTS/Resources"
+cp assets/AppIcon.icns assets/MenuBarIcon.png assets/MenuBarIcon@2x.png "$CONTENTS/Resources/"
 
 if security find-identity -v -p codesigning 2>/dev/null \
     | grep -Fq "\"$SIGNING_NAME\""; then

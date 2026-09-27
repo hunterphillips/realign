@@ -405,10 +405,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Icon feedback
 
     private func showBaseIcon(preserveTooltip: Bool = false) {
-        showIcon(
-            symbol: "rectangle.split.2x1",
-            description: "Realign"
-        )
+        if let image = Self.menuBarIcon {
+            statusItem.button?.image = image
+        } else {
+            showIcon(symbol: "rectangle.split.2x1", description: "Realign")
+        }
         if !preserveTooltip {
             statusItem.button?.toolTip =
                 "Realign — restore \(restoreHotKeyDisplay), " +
@@ -425,6 +426,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self?.showBaseIcon(preserveTooltip: true)
         }
     }
+
+    /// The bundled template glyph (same mark as the app icon). Nil when
+    /// running outside the app bundle, where the SF Symbol stands in.
+    private static let menuBarIcon: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "MenuBarIcon", withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        image.size = NSSize(width: 18, height: 18)
+        image.accessibilityDescription = "Realign"
+        return image
+    }()
 
     private func showIcon(symbol: String, description: String) {
         let image = NSImage(
