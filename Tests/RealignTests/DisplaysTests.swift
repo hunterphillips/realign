@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
-@testable import RestoreLayout
+@testable import Realign
 
 /// Fixtures are the three displays probed on the development machine.
 @Suite("Display configuration")

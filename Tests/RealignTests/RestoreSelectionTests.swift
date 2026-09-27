@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
-@testable import RestoreLayout
+@testable import Realign
 
 /// Routing table for restore targets, using the probed display fixtures.
 @Suite("Restore selection")

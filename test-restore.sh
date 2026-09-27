@@ -6,11 +6,11 @@
 set -eu
 cd "$(dirname "$0")"
 
-if [[ ! -x ".build/release/RestoreLayout" ]]; then
+if [[ ! -x ".build/release/Realign" ]]; then
   swift build -c release
 fi
 
-BINARY=".build/release/RestoreLayout"
+BINARY=".build/release/Realign"
 if ! "$BINARY" --list >/dev/null; then
   echo "Grant Accessibility access to this terminal, then rerun." >&2
   exit 2

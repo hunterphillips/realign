@@ -2,7 +2,7 @@
 # Create the stable local code-signing identity used by build-app.sh.
 set -eu
 
-SIGNING_NAME="restore-layout-dev"
+SIGNING_NAME="realign-dev"
 
 if security find-identity -v -p codesigning 2>/dev/null \
     | grep -Fq "\"$SIGNING_NAME\""; then
@@ -19,13 +19,13 @@ if [[ -z "$LOGIN_KEYCHAIN" ]]; then
   )"
 fi
 
-CERT_DIR="$(mktemp -d /tmp/restore-layout-dev-cert.XXXXXX)"
+CERT_DIR="$(mktemp -d /tmp/realign-dev-cert.XXXXXX)"
 trap 'rm -rf "$CERT_DIR"' EXIT
-IMPORT_PASSWORD="restore-layout-local-import"
+IMPORT_PASSWORD="realign-local-import"
 
 echo "→ Creating a ten-year self-signed code-signing certificate…"
 if ! openssl req -new -newkey rsa:2048 -x509 -sha256 -days 3650 -nodes \
-    -subj "/CN=$SIGNING_NAME/O=RestoreLayout Development/" \
+    -subj "/CN=$SIGNING_NAME/O=Realign Development/" \
     -addext "keyUsage=critical,digitalSignature" \
     -addext "extendedKeyUsage=codeSigning" \
     -keyout "$CERT_DIR/private-key.pem" \
@@ -45,7 +45,7 @@ if ! security import "$CERT_DIR/identity.p12" \
     -k "$LOGIN_KEYCHAIN" \
     -P "$IMPORT_PASSWORD" \
     -T /usr/bin/codesign; then
-  FALLBACK_IDENTITY="/tmp/restore-layout-dev-identity.p12"
+  FALLBACK_IDENTITY="/tmp/realign-dev-identity.p12"
   cp "$CERT_DIR/identity.p12" "$FALLBACK_IDENTITY"
   echo ""
   echo "Automatic Keychain import failed. In Keychain Access:"

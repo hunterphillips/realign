@@ -56,7 +56,7 @@ final class GlobalHotKey: @unchecked Sendable {
         )
         guard handlerStatus == noErr else { return nil }
 
-        let hotKeyID = EventHotKeyID(signature: 0x5350_4C54, id: identifier) // SPLT
+        let hotKeyID = EventHotKeyID(signature: 0x5241_4C4E, id: identifier) // RALN
         let registerStatus = RegisterEventHotKey(
             keyCode,
             modifiers,

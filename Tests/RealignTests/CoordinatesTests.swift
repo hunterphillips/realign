@@ -1,6 +1,6 @@
 import CoreGraphics
 import Testing
-@testable import RestoreLayout
+@testable import Realign
 
 @Suite("Coordinate conversion")
 struct CoordinatesTests {

@@ -1,6 +1,6 @@
-# RestoreLayout
+# Realign
 
-RestoreLayout puts your Mac windows back where you had them.
+Realign puts your Mac windows back where you had them.
 
 ![Before and after](assets/before-after.png)
 
@@ -17,8 +17,8 @@ Requires macOS 14 or later and the Xcode Command Line Tools. Right now you
 build it from source, which takes about a minute:
 
 ```sh
-git clone https://github.com/hunterphillips/restore-layout.git
-cd restore-layout
+git clone https://github.com/hunterphillips/realign.git
+cd realign
 ./make-dev-cert.sh        # once: creates a local signing certificate
 ./build-app.sh install    # builds the app, copies it to /Applications, opens it
 ```
@@ -100,15 +100,15 @@ The same binary works from a terminal, which needs its own Accessibility
 permission:
 
 ```sh
-RestoreLayout --save              # save the layout for the connected displays
-RestoreLayout --restore           # restore what the shortcut would
-RestoreLayout --restore laptop    # restore the laptop layout
-RestoreLayout --restore multi     # restore the layout for the connected displays
-RestoreLayout --list              # show connected displays and every window
+Realign --save              # save the layout for the connected displays
+Realign --restore           # restore what the shortcut would
+Realign --restore laptop    # restore the laptop layout
+Realign --restore multi     # restore the layout for the connected displays
+Realign --list              # show connected displays and every window
 ```
 
 Layouts and settings are a plain JSON file at
-`~/Library/Application Support/RestoreLayout/layouts.json`. A `layout.json`
+`~/Library/Application Support/Realign/layouts.json`. A `layout.json`
 from an older version is read into the laptop layout the first time and left
 where it is.
 

@@ -15,8 +15,8 @@ enum AXPermission {
     }
 
     static let instructions = """
-    RestoreLayout needs Accessibility access to inspect and move windows.
-    Open System Settings → Privacy & Security → Accessibility, enable RestoreLayout
+    Realign needs Accessibility access to inspect and move windows.
+    Open System Settings → Privacy & Security → Accessibility, enable Realign
     (or the terminal running this CLI), then run the command again.
     """
 }

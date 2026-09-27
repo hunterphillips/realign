@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Build RestoreLayout.app — a self-contained menu bar app bundle.
+# Build Realign.app — a self-contained menu bar app bundle.
 #
 #   ./build-app.sh            build the bundle here
 #   ./build-app.sh install    copy it to /Applications and relaunch
@@ -7,10 +7,10 @@
 set -eu
 cd "$(dirname "$0")"
 
-APP="RestoreLayout.app"
+APP="Realign.app"
 CONTENTS="$APP/Contents"
 INSTALL_DIR="/Applications"
-SIGNING_NAME="restore-layout-dev"
+SIGNING_NAME="realign-dev"
 
 if [[ "${1:-}" != "" && "${1:-}" != "install" ]]; then
   echo "Usage: ./build-app.sh [install]" >&2
@@ -27,14 +27,14 @@ swift build "${SWIFT_BUILD_ARGUMENTS[@]}"
 echo "→ Assembling $APP…"
 rm -rf "$APP"
 mkdir -p "$CONTENTS/MacOS"
-cp ".build/release/RestoreLayout" "$CONTENTS/MacOS/RestoreLayout"
+cp ".build/release/Realign" "$CONTENTS/MacOS/Realign"
 cp "Info.plist" "$CONTENTS/Info.plist"
 
 if security find-identity -v -p codesigning 2>/dev/null \
     | grep -Fq "\"$SIGNING_NAME\""; then
   echo "→ Signing with stable identity: $SIGNING_NAME"
   codesign --force --deep --options runtime \
-    --entitlements RestoreLayout.entitlements \
+    --entitlements Realign.entitlements \
     --sign "$SIGNING_NAME" "$APP"
 else
   echo ""
@@ -44,7 +44,7 @@ else
   echo "Run ./make-dev-cert.sh once, then rebuild for a stable TCC identity."
   echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   echo ""
-  codesign --force --deep --entitlements RestoreLayout.entitlements \
+  codesign --force --deep --entitlements Realign.entitlements \
     --sign - "$APP"
 fi
 
@@ -53,7 +53,7 @@ echo "✓ Built $(pwd)/$APP"
 
 if [[ "${1:-}" == "install" ]]; then
   echo "→ Installing to $INSTALL_DIR and relaunching…"
-  pkill -x RestoreLayout 2>/dev/null || true
+  pkill -x Realign 2>/dev/null || true
   sleep 0.4
   rm -rf "$INSTALL_DIR/$APP"
   cp -R "$APP" "$INSTALL_DIR/$APP"

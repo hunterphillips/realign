@@ -1,4 +1,4 @@
-# RestoreLayout
+# Realign
 
 macOS menu bar utility and CLI for snapshotting visible window frames and
 restoring them. Keeps a laptop layout plus one multi-display layout per set of
@@ -38,7 +38,7 @@ connected displays.
 swift build
 swift test
 ./build-app.sh
-codesign -dv --verbose=4 RestoreLayout.app
+codesign -dv --verbose=4 Realign.app
 ```
 
 Use `./build-app.sh install` for the installed daily-driver copy. Run
@@ -79,6 +79,6 @@ identity and Accessibility approval.
 - No named layouts, app launching, Space manipulation, or settings UI beyond
   the menu toggles.
 - Do not enable App Sandbox; public AX window control is incompatible with it.
-- Keep the stable `restore-layout-dev` signing path. Ad-hoc signatures can cause
+- Keep the stable `realign-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.
 

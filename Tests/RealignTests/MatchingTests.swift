@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
-@testable import RestoreLayout
+@testable import Realign
 
 @Suite("Window matching and persistence")
 struct MatchingTests {
@@ -306,7 +306,7 @@ struct MatchingTests {
 
     private func makeStore() -> (LayoutStore, URL) {
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("RestoreLayoutTests-\(UUID().uuidString)")
+            .appendingPathComponent("RealignTests-\(UUID().uuidString)")
         let store = LayoutStore(fileURL: directory.appendingPathComponent("layouts.json"))
         return (store, directory)
     }

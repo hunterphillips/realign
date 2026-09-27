@@ -132,7 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let how = target == .displayChange ? " automatically" : ""
             tooltip = report.target.map { "\($0) restored\(how)" } ?? report.summary
         }
-        statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
+        statusItem.button?.toolTip = "Realign — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon(preserveTooltip: isPartial)
         }
@@ -150,7 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 description: "Layout saved"
             )
             statusItem.button?.toolTip =
-                "RestoreLayout — saved \(layout.windows.count) " +
+                "Realign — saved \(layout.windows.count) " +
                 "window\(layout.windows.count == 1 ? "" : "s") " +
                 "(\(slot.feedbackDescription))"
         } catch {
@@ -293,7 +293,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(
-            title: "Quit RestoreLayout",
+            title: "Quit Realign",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         ))
@@ -384,7 +384,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
         statusItem.button?.toolTip =
-            "RestoreLayout needs Accessibility access"
+            "Realign needs Accessibility access"
         permissionTimer?.invalidate()
         permissionTimer = Timer.scheduledTimer(
             withTimeInterval: 1,
@@ -407,11 +407,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func showBaseIcon(preserveTooltip: Bool = false) {
         showIcon(
             symbol: "rectangle.split.2x1",
-            description: "RestoreLayout"
+            description: "Realign"
         )
         if !preserveTooltip {
             statusItem.button?.toolTip =
-                "RestoreLayout — restore \(restoreHotKeyDisplay), " +
+                "Realign — restore \(restoreHotKeyDisplay), " +
                 "save \(saveHotKeyDisplay)"
         }
     }
@@ -420,7 +420,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// stays until the next feedback change.
     private func showFailure(description: String, tooltip: String) {
         showIcon(symbol: "exclamationmark.triangle", description: description)
-        statusItem.button?.toolTip = "RestoreLayout — \(tooltip)"
+        statusItem.button?.toolTip = "Realign — \(tooltip)"
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
             self?.showBaseIcon(preserveTooltip: true)
         }

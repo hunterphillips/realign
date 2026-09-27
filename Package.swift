@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "RestoreLayout",
+    name: "Realign",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "RestoreLayout", targets: ["RestoreLayout"]),
+        .executable(name: "Realign", targets: ["Realign"]),
     ],
     targets: [
         .executableTarget(
-            name: "RestoreLayout",
-            path: "Sources/RestoreLayout",
+            name: "Realign",
+            path: "Sources/Realign",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("ApplicationServices"),
@@ -19,9 +19,9 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "RestoreLayoutTests",
-            dependencies: ["RestoreLayout"],
-            path: "Tests/RestoreLayoutTests"
+            name: "RealignTests",
+            dependencies: ["Realign"],
+            path: "Tests/RealignTests"
         ),
     ]
 )

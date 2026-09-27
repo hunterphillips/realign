@@ -6,8 +6,8 @@ enum LayoutStoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .newerVersion(let version):
-            "layouts.json is version \(version), newer than this RestoreLayout " +
-                "understands (\(LayoutLibrary.currentVersion)). Update RestoreLayout."
+            "layouts.json is version \(version), newer than this Realign " +
+                "understands (\(LayoutLibrary.currentVersion)). Update Realign."
         }
     }
 }
@@ -28,7 +28,7 @@ struct LayoutStore: Sendable {
                 in: .userDomainMask
             ).first ?? FileManager.default.homeDirectoryForCurrentUser
             self.fileURL = base
-                .appendingPathComponent("RestoreLayout", isDirectory: true)
+                .appendingPathComponent("Realign", isDirectory: true)
                 .appendingPathComponent("layouts.json", isDirectory: false)
         }
         legacyFileURL = self.fileURL
@@ -84,7 +84,7 @@ struct LayoutStore: Sendable {
             )
         } catch {
             FileHandle.standardError.write(Data(
-                "RestoreLayout: ignoring unreadable \(legacyFileURL.path): \(error.localizedDescription)\n".utf8
+                "Realign: ignoring unreadable \(legacyFileURL.path): \(error.localizedDescription)\n".utf8
             ))
             return nil
         }

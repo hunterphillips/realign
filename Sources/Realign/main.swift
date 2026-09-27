@@ -4,17 +4,17 @@ import Foundation
 
 private func printHelp() {
     print("""
-    RestoreLayout — save and restore visible window layouts across displays
+    Realign — save and restore visible window layouts across displays
 
     Usage:
-      RestoreLayout                     Run the menu bar app
-      RestoreLayout --save              Save the layout for the connected displays
+      Realign                     Run the menu bar app
+      Realign --save              Save the layout for the connected displays
                                         (laptop layout when only the built-in is on)
-      RestoreLayout --restore           Restore per the shortcut target setting
-      RestoreLayout --restore laptop    Restore the laptop layout
-      RestoreLayout --restore multi     Restore the layout for the connected displays
-      RestoreLayout --list              List displays, visible standard windows and frames
-      RestoreLayout --help              Show this help
+      Realign --restore           Restore per the shortcut target setting
+      Realign --restore laptop    Restore the laptop layout
+      Realign --restore multi     Restore the layout for the connected displays
+      Realign --list              List displays, visible standard windows and frames
+      Realign --help              Show this help
 
     Global shortcuts: ⌃⌥⌘S saves, ⌃⌥⌘R restores (per the shortcut target).
     """)
@@ -44,7 +44,7 @@ if let command = arguments.first {
             print(try CaptureEngine.listDescription())
             exit(0)
         } catch {
-            fail("RestoreLayout list failed: \(error.localizedDescription)")
+            fail("Realign list failed: \(error.localizedDescription)")
         }
 
     case "--save":
@@ -63,7 +63,7 @@ if let command = arguments.first {
             print(store.fileURL.path)
             exit(0)
         } catch {
-            fail("RestoreLayout save failed: \(error.localizedDescription)")
+            fail("Realign save failed: \(error.localizedDescription)")
         }
 
     case "--restore":
@@ -74,7 +74,7 @@ if let command = arguments.first {
             do {
                 target = try RestoreEngine.shortcutTarget()
             } catch {
-                fail("RestoreLayout restore failed: \(error.localizedDescription)")
+                fail("Realign restore failed: \(error.localizedDescription)")
             }
         case "laptop":
             target = .laptop

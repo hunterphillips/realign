@@ -1,5 +1,5 @@
 import Testing
-@testable import RestoreLayout
+@testable import Realign
 
 @Suite("Display change watcher")
 struct DisplayChangeWatcherTests {

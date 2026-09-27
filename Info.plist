@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>RestoreLayout</string>
+    <string>Realign</string>
     <key>CFBundleDisplayName</key>
-    <string>RestoreLayout</string>
+    <string>Realign</string>
     <key>CFBundleIdentifier</key>
-    <string>com.hunterphillips.RestoreLayout</string>
+    <string>com.hunterphillips.Realign</string>
     <key>CFBundleExecutable</key>
-    <string>RestoreLayout</string>
+    <string>Realign</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -21,7 +21,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSAccessibilityUsageDescription</key>
-    <string>RestoreLayout saves and restores the positions and sizes of your windows.</string>
+    <string>Realign saves and restores the positions and sizes of your windows.</string>
 </dict>
 </plist>
 
