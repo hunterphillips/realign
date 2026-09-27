@@ -31,6 +31,10 @@ connected displays.
 - `RestoreEngine.swift` — target selection, per-display resolution, verified
   frame application
 - `DisplayChangeWatcher.swift` — debounced display-set watcher
+- `assets/app-icon.svg` → `AppIcon.icns`; `assets/menubar-icon.svg` →
+  `MenuBarIcon.png` / `@2x` (18pt template glyph, drawn on the pixel grid).
+  `build-app.sh` copies them into `Contents/Resources`; the status item falls
+  back to the SF Symbol `rectangle.split.2x1` outside the bundle.
 
 ## Build and verify
 
