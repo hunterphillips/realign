@@ -15,10 +15,16 @@ It lives in the menu bar, is free, and is open source (MIT).
 
 Requires macOS 14 or later.
 
-Download `Realign-1.0.zip` from the [latest
+With [Homebrew](https://brew.sh):
+
+```sh
+brew install hunterphillips/tap/realign
+```
+
+Or download `Realign-1.0.zip` from the [latest
 release](https://github.com/hunterphillips/realign/releases/latest), unzip
-it, and drag Realign to your Applications folder. It is signed and notarized,
-so macOS opens it without any extra steps.
+it, and drag Realign to your Applications folder. Either way it is signed
+and notarized, so macOS opens it without any extra steps.
 
 To build it from source instead, you need the Xcode Command Line Tools. It
 takes about a minute:
