@@ -110,7 +110,8 @@ README sweep:
   menu has a few more things", "two details make this reliable"). No cute
   filler ("does what it says", "when your windows are a mess"). No
   appositive asides (", the default,", ", useful before unplugging").
-- README sections: intro line, image, one paragraph, Install, How to use,
-  Why I built it, How it works (one paragraph), License. Nothing else.
+- README sections: intro line, image, one paragraph, Install, How to use
+  (steps, then menu options), License. Nothing else. Hunter cut Why I
+  built it and How it works on 2026-09-27; do not add them back.
 - Sentences Hunter wrote stay verbatim. Check `git diff README.md` before
   editing and keep his changes.
