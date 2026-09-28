@@ -93,7 +93,6 @@ tagging a release.
 - Keep the stable `realign-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.
 
-
 ## Writing
 
 Hunter edits the README and every other user-facing sentence himself and
