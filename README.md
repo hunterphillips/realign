@@ -24,28 +24,21 @@ cd realign
 ./build-app.sh install
 ```
 
-On first launch, grant Accessibility access in System Settings > Privacy & Security > Accessibility. Realign needs it to move other apps' windows.
+On first launch, macOS asks for Accessibility access, which Realign needs to move windows.
 
 ## How to use
 
 1. Arrange your windows.
-2. Press `⌃⌥⌘S`, or choose **Save Current Layout** from the menu bar icon.
+2. Press `⌃⌥⌘S` or choose **Save Current Layout** from the menu bar dropdown.
 3. Press `⌃⌥⌘R` to restore.
 
-Realign keeps one layout for the laptop on its own and one for each set of external monitors. Save once in each setup. Saving again overwrites the layout for the current setup.
+Realign keeps one layout for the laptop and one for each set of external monitors. Saving again overwrites the layout for the current display setup.
 
 Menu options:
 
-- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore a specific layout regardless of what is connected. Restoring the laptop layout while monitors are attached moves every window onto the laptop screen, useful before unplugging.
-- **Restore Shortcut** sets which layout `⌃⌥⌘R` restores. Auto-detect, the default, picks the layout for the connected monitors, or the laptop layout if none is saved for them.
-- **Auto-Restore on Display Change** restores the matching layout a few seconds after you plug in or unplug monitors. It is off by default. If no layout is saved for the new setup, nothing moves.
-
-## Good to know
-
-- Restore moves only windows that existed when you saved, matched by app and order. If you saved with one browser window and now have two, only one moves.
-- Minimized windows, full-screen windows, and windows on other desktops stay where they are. Apps that aren't running are skipped.
-- The laptop layout can't be restored with the lid closed.
-- Layouts are stored in `~/Library/Application Support/Realign/layouts.json`.
+- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore a specific layout regardless of which displays are connected.
+- **Restore Shortcut** chooses what `⌃⌥⌘R` restores: the layout matching the connected displays (default), the laptop layout, or the multi-display layout.
+- **Auto-Restore on Display Change** restores the matching layout on its own when you plug in or unplug a monitor. It's off by default.
 
 ## Why I built it
 
@@ -53,11 +46,7 @@ On my laptop the layout is always the same: terminal and notes in a narrow colum
 
 ## How it works
 
-When you save, Realign asks macOS for the position and size of every visible window and records them relative to the screen each window is on. When you restore, it finds each window again and moves it back.
-
-Each window is resized, then moved, then resized again, because macOS otherwise shrinks a window to fit its current screen before it moves. After every move, Realign reads the position back and retries if the window didn't land.
-
-Monitors are identified by the ID macOS assigns them, with make, model, and size as a fallback in case the ID changes between ports. For Chrome and other Chromium apps, one accessibility setting is switched off during the move. With it on, a single resize can freeze Chrome for several seconds.
+When you save, Realign records the position and size of every visible window relative to the display it's on. When you restore, it moves each window back and checks that it landed. Displays are matched by the ID macOS assigns them, with make, model, and size as a fallback.
 
 ## License
 

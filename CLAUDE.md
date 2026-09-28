@@ -93,3 +93,25 @@ tagging a release.
 - Keep the stable `realign-dev` signing path. Ad-hoc signatures can cause
   macOS Tahoe to re-prompt for Accessibility after every rebuild.
 
+
+## Writing
+
+Hunter edits the README and every other user-facing sentence himself and
+expects to do it once. Before drafting or revising any prose, load the
+`writing` skill and run its audit. Rules that came out of the 2026-09-27
+README sweep:
+
+- The reader is a stranger deciding whether to download. Anything they
+  wouldn't care about at that moment is cut, not trimmed: implementation
+  details, edge cases, file paths, build or CLI sections, common sense
+  ("can't restore with the lid closed"), and anything that only makes sense
+  because of a conversation Hunter had.
+- No self-referential or reassuring lines ("free and open source", "signed
+  and notarized so it opens without extra steps"). No meta lead-ins ("the
+  menu has a few more things", "two details make this reliable"). No cute
+  filler ("does what it says", "when your windows are a mess"). No
+  appositive asides (", the default,", ", useful before unplugging").
+- README sections: intro line, image, one paragraph, Install, How to use,
+  Why I built it, How it works (one paragraph), License. Nothing else.
+- Sentences Hunter wrote stay verbatim. Check `git diff README.md` before
+  editing and keep his changes.
