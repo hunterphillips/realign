@@ -36,9 +36,9 @@ Realign keeps one layout for the laptop and one for each set of external monitor
 
 Menu options:
 
-- **Restore Laptop Layout** and **Restore Multi-Display Layout** restore a specific layout regardless of which displays are connected.
-- **Restore Shortcut** chooses what the keyboard shortcut restores: the layout matching the connected displays (default), the laptop layout, or the multi-display layout.
-- **Auto-Restore on Display Change** restores the matching layout on its own when you plug in or unplug a monitor. Off by default.
+- **`Restore Laptop Layout`** and **`Restore Multi-Display Layout`** - restore a specific layout regardless of which displays are connected.
+- **`Restore Shortcut`** - chooses what the keyboard shortcut restores: the layout matching the connected displays (default), the laptop layout, or the multi-display layout.
+- **`Auto-Restore on Display Change`** - Trigger restore layout when you plug in or unplug a monitor. Off by default.
 
 ## License
 
