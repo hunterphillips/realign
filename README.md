@@ -1,10 +1,10 @@
 # Realign
 
-Realign puts your Mac windows back where you had them.
+Realign resets your Mac window positions & sizing back to a saved layout.
 
 ![Before and after](assets/before-after.png)
 
-Arrange and save your window layout. Quickly restore a saved layout with a keyboard shortcut or restore automatically when you plug in or unplug external monitors.
+Arrange and save your window layout. Restore a saved layout with a keyboard shortcut or automatically when you plug in or unplug external monitors.
 
 ## Install
 
@@ -37,16 +37,8 @@ Realign keeps one layout for the laptop and one for each set of external monitor
 Menu options:
 
 - **Restore Laptop Layout** and **Restore Multi-Display Layout** restore a specific layout regardless of which displays are connected.
-- **Restore Shortcut** chooses what `⌃⌥⌘R` restores: the layout matching the connected displays (default), the laptop layout, or the multi-display layout.
-- **Auto-Restore on Display Change** restores the matching layout on its own when you plug in or unplug a monitor. It's off by default.
-
-## Why I built it
-
-On my laptop the layout is always the same: terminal and notes in a narrow column on the left, editor and browser filling the rest. macOS doesn't remember it. Every time I unplugged a monitor, every window landed somewhere random and I rebuilt the arrangement by hand, several times a day.
-
-## How it works
-
-When you save, Realign records the position and size of every visible window relative to the display it's on. When you restore, it moves each window back and checks that it landed. Displays are matched by the ID macOS assigns them, with make, model, and size as a fallback.
+- **Restore Shortcut** chooses what the keyboard shortcut restores: the layout matching the connected displays (default), the laptop layout, or the multi-display layout.
+- **Auto-Restore on Display Change** restores the matching layout on its own when you plug in or unplug a monitor. Off by default.
 
 ## License
 
