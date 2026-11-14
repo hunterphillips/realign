@@ -1,6 +1,6 @@
 # Realign
 
-Realign resets your Mac window positions & sizing back to a saved layout.
+[Realign](https://hunterphillips.dev/apps/realign) resets your Mac window positions & sizing back to a saved layout.
 
 ![Before and after](assets/before-after.png)
 
