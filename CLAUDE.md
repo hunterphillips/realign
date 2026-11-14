@@ -56,6 +56,16 @@ identity (`--timestamp`, hardened runtime), notarizes through the
 `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist` before
 tagging a release.
 
+After `gh release create`, bump `version` and `sha256` in
+`../homebrew-tap/Casks/realign.rb`, and upload the new zip as the content of
+the Gumroad product (https://hkphillips.gumroad.com/l/realign), which is
+where the product page's download button goes.
+
+The product page is https://hunterphillips.dev/apps/realign. It lives in the
+personal-site repo (`~/workspace/projects/personal-site/site`, copy in
+`src/data/apps.ts`), not here. `assets/gumroad-cover-*.png` are renders of
+its hero used as Gumroad cover images.
+
 ## Invariants
 
 - Apply every frame in the order **size → position → size**.
